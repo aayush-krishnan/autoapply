@@ -1,0 +1,16 @@
+# Docker
+.dockerignore
+node_modules
+.next
+__pycache__
+*.pyc
+.venv
+.env
+autoapply.db
+autoapply_final_review.png
+autoapply_error.png
+/tmp/*
+.git
+.agents
+.gemini
+/brain

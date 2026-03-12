@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# Databases & Large Files
+*.db
+*.sqlite3
+*.pdf
+autoapply/backend/autoapply.db
+autoapply/backend/*.png
+
+# Environment & Credentials
+.env
+.env.*
+! .env.example
+autoapply/backend/google-credentials.json
+google-credentials.json
+service-account.json
+
+# Node / Next.js
+autoapply/frontend/node_modules/
+autoapply/frontend/.next/
+autoapply/frontend/out/
+autoapply/frontend/build/
+autoapply/frontend/.env*
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Artifacts & Temporary files
+/tmp/
+/brain/
+.gemini/
+.agents/
+PRD.md
+task.md
+implementation_plan.md
+walkthrough.md
+system_overview.md
