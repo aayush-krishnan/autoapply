@@ -13,6 +13,10 @@ class Settings:
     # Google AI
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
+    # Google Docs / Drive
+    GOOGLE_SERVICE_ACCOUNT_FILE: str = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "google-credentials.json")
+    GOOGLE_DRIVE_FOLDER_ID: str = os.getenv("GOOGLE_DRIVE_FOLDER_ID", "")
+
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./autoapply.db")
 

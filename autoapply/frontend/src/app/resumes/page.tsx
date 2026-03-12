@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { User, BookOpen, Briefcase, Wrench, Save, Plus, Trash2 } from "lucide-react";
+import { apiRequest } from "@/lib/api";
 
 export default function ResumesPage() {
     const [activeTab, setActiveTab] = useState("personal");
@@ -10,24 +11,30 @@ export default function ResumesPage() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        fetch("http://localhost:8000/api/resumes/master")
-            .then((res) => res.json())
-            .then((data) => {
+        const fetchProfile = async () => {
+            try {
+                const data = await apiRequest<any>("/api/resumes/master");
                 setProfile(data);
+            } catch (e) {
+                console.error("Failed to fetch master profile:", e);
+            } finally {
                 setLoading(false);
-            });
+            }
+        };
+        fetchProfile();
     }, []);
 
     const handleSave = async () => {
         setSaving(true);
         try {
-            await fetch("http://localhost:8000/api/resumes/master", {
+            await apiRequest("/api/resumes/master", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(profile),
             });
+            alert("Profile saved successfully!");
         } catch (e) {
             console.error(e);
+            alert("Failed to save profile.");
         } finally {
             setSaving(false);
         }
@@ -245,11 +252,120 @@ export default function ResumesPage() {
                         </div>
                     )}
 
-                    {/* Basic placeholders for Education & Skills */}
-                    {(activeTab === "education" || activeTab === "skills") && (
-                        <div className="text-center py-24 text-gray-500 text-sm">
-                            <Wrench className="w-8 h-8 mx-auto mb-3 opacity-50" />
-                            This tab is scaffolded and will be built out shortly.
+                    {/* EDUCATION TAB */}
+                    {activeTab === "education" && (
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-semibold text-white">Education</h2>
+                                <button
+                                    onClick={() => {
+                                        const newEdu = { institution: "", degree: "", field: "", graduation: "", gpa: "", relevant_courses: [] };
+                                        setProfile({ ...profile, education: [...(profile.education || []), newEdu] });
+                                    }}
+                                    className="flex items-center gap-1 text-xs text-blue-400 font-medium hover:text-blue-300"
+                                >
+                                    <Plus className="w-3 h-3" /> Add Institution
+                                </button>
+                            </div>
+
+                            {(profile.education || []).map((edu: any, idx: number) => (
+                                <div key={idx} className="bg-[#1a1a1a] border border-[#333] rounded-lg p-5 relative mb-4">
+                                    <button
+                                        className="absolute top-4 right-4 text-gray-500 hover:text-red-400"
+                                        onClick={() => {
+                                            const newEduList = [...profile.education];
+                                            newEduList.splice(idx, 1);
+                                            setProfile({ ...profile, education: newEduList });
+                                        }}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="col-span-2">
+                                            <label className="block text-xs text-gray-400 mb-1">Institution</label>
+                                            <input
+                                                type="text"
+                                                className="w-full bg-[#222] border border-[#444] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                                                value={edu.institution}
+                                                onChange={(e) => {
+                                                    const newEduList = [...profile.education];
+                                                    newEduList[idx].institution = e.target.value;
+                                                    setProfile({ ...profile, education: newEduList });
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Degree</label>
+                                            <input
+                                                type="text"
+                                                className="w-full bg-[#222] border border-[#444] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                                                value={edu.degree}
+                                                onChange={(e) => {
+                                                    const newEduList = [...profile.education];
+                                                    newEduList[idx].degree = e.target.value;
+                                                    setProfile({ ...profile, education: newEduList });
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Graduation Date</label>
+                                            <input
+                                                type="text"
+                                                className="w-full bg-[#222] border border-[#444] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                                                value={edu.graduation}
+                                                onChange={(e) => {
+                                                    const newEduList = [...profile.education];
+                                                    newEduList[idx].graduation = e.target.value;
+                                                    setProfile({ ...profile, education: newEduList });
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* SKILLS TAB */}
+                    {activeTab === "skills" && (
+                        <div className="space-y-8">
+                            <h2 className="text-lg font-semibold text-white mb-4">Skills & Expertise</h2>
+                            
+                            {['technical', 'domain', 'soft'].map((category) => (
+                                <div key={category} className="space-y-3">
+                                    <label className="block text-xs uppercase font-black tracking-widest text-gray-500">{category} Skills</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(profile.skills[category] || []).map((skill: string, sIdx: number) => (
+                                            <div key={sIdx} className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] px-3 py-1.5 rounded-lg text-sm group">
+                                                <span>{skill}</span>
+                                                <button 
+                                                    onClick={() => {
+                                                        const newSkills = {...profile.skills};
+                                                        newSkills[category].splice(sIdx, 1);
+                                                        setProfile({...profile, skills: newSkills});
+                                                    }}
+                                                    className="text-gray-600 hover:text-red-400 transition-colors"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button 
+                                            onClick={() => {
+                                                const skill = prompt(`Add ${category} skill:`);
+                                                if (skill) {
+                                                    const newSkills = {...profile.skills};
+                                                    newSkills[category] = [...(newSkills[category] || []), skill];
+                                                    setProfile({...profile, skills: newSkills});
+                                                }
+                                            }}
+                                            className="px-3 py-1.5 rounded-lg border border-dashed border-[#444] text-xs text-blue-400 hover:bg-blue-400/5 transition-colors"
+                                        >
+                                            + Add
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>

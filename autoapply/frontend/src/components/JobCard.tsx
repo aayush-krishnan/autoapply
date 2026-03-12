@@ -46,15 +46,19 @@ export default function JobCard({ job, onDismiss }: JobCardProps) {
         }
     };
 
-    const handleTailor = async () => {
+    const handleTailor = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         setIsTailoring(true);
         try {
             const data = await apiRequest<any>(`/api/resumes/tailor/${job.id}`, {
                 method: "POST"
             });
 
-            if (data.google_doc_url) {
+            if (data.google_doc_url && data.google_doc_url !== "#") {
                 window.open(data.google_doc_url, "_blank");
+            } else if (data.status === "error") {
+                alert("Failed to generate resume. See console for details.");
             }
         } catch (e) {
             console.error("Error tailoring resume:", e);
@@ -138,7 +142,7 @@ export default function JobCard({ job, onDismiss }: JobCardProps) {
             {/* Bottom Actions */}
             <div className="flex gap-3 pt-2 relative z-10">
                 <button
-                    onClick={handleTailor}
+                    onClick={(e) => handleTailor(e)}
                     disabled={isTailoring}
                     className="flex-1 flex justify-center items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 disabled:opacity-50 text-white text-sm font-bold py-3 rounded-xl transition-all active:scale-95"
                 >

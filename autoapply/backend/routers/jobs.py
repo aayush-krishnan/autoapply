@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 
 from database import get_db
+from config import settings
 from models import JobListing, Company, ScraperRun
 from schemas import (
     JobListingResponse, JobListingDetail, PaginatedJobs,

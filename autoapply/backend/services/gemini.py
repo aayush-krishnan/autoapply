@@ -12,8 +12,8 @@ class GeminiService:
 
     def __init__(self):
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
-        self.pro_model = genai.GenerativeModel("gemini-2.0-pro")
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
+        self.pro_model = genai.GenerativeModel("gemini-2.0-flash")
 
     async def parse_job_description(self, title: str, description: str) -> dict:
         """

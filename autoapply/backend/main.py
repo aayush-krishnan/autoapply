@@ -4,8 +4,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi.staticfiles import StaticFiles
+import os
+
 from database import engine, init_db
-from routers import jobs, dashboard, resumes, apply
+from routers import jobs, dashboard, resumes, apply, config
 
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -42,6 +45,8 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(run_automated_scrape, 'interval', hours=1, next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=10))
     scheduler.start()
     print("📅 [Scheduler] Hourly background scrape scheduled.")
+    from config import settings
+    print(f"📂 [Config] Google Drive Folder ID: {settings.GOOGLE_DRIVE_FOLDER_ID or 'NOT CONFIGURED'}")
     
     yield
     scheduler.shutdown()
@@ -68,11 +73,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Static files for tailored resumes
+resumes_path = os.path.join(os.getcwd(), "data", "resumes")
+os.makedirs(resumes_path, exist_ok=True)
+app.mount("/api/static/resumes", StaticFiles(directory=resumes_path), name="resumes")
+
 # Include routers
 app.include_router(jobs.router)
 app.include_router(dashboard.router)
 app.include_router(resumes.router)
 app.include_router(apply.router)
+app.include_router(config.router)
 
 
 @app.get("/api/health")

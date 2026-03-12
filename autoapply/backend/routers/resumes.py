@@ -10,6 +10,8 @@ from models_profile import MasterProfile, TailoredResume
 from schemas_profile import MasterProfileSchema, TailoredResumeSchema
 from services.resume_tailor import resume_tailor_service
 from services.google_docs import google_docs_service
+from services.pdf_generator import pdf_generator_service
+from config import settings
 
 router = APIRouter(prefix="/api/resumes", tags=["Resumes"])
 
@@ -64,14 +66,6 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
     # Convert mapping to Pydantic object
     schema = MasterProfileSchema(**master_profile_record.profile_data)
 
-    # Check if a tailored resume already exists
-    existing_resume = db.query(TailoredResume).filter(TailoredResume.job_id == job_id).first()
-    if existing_resume:
-        return {
-            "status": "already_exists",
-            "job_id": job_id,
-            "google_doc_url": existing_resume.google_doc_url
-        }
 
     # 1. Ask Gemini to Tailor Bullets
     tailored_data = await resume_tailor_service.tailor_resume(
@@ -99,16 +93,50 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
             replacements[f"{prefix}_BULLET_{b_idx+1}}}}}"] = bullet_text
 
 
-    # 3. Call Google Docs Service
-    # Note: the template ID comes directly from a config var or hardcoded default
-    template_id = "1sTsA0rOhi2M0JrEibVfG4Ig8LEc-MAyY" # Provided by user
-    new_title = f"{schema.personal.name} - Resume - {job.company_name} ({job.title})"
+    # 3. Generate Local PDF (Reliable alternative to Google Drive quota issues)
+    filename = f"Resume_{job_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     
-    doc_id, doc_url = await google_docs_service.create_tailored_doc(
-        template_id=template_id,
-        replacements=replacements,
-        new_title=new_title
-    )
+    # Prepare data for local PDF template
+    pdf_data = {
+        "name": schema.personal.name,
+        "email": schema.personal.email,
+        "phone": schema.personal.phone,
+        "location": schema.personal.location,
+        "linkedin": schema.personal.linkedin,
+        "portfolio": schema.personal.portfolio,
+        "summary": tailored_data.get("summary", ""),
+        "experience": tailored_data.get("experience", []),
+        "education": tailored_data.get("education", []),
+        "skills": tailored_data.get("skills", []), # Note: tailored_data['skills'] is a list of strings
+        "certifications": tailored_data.get("certifications", [])
+    }
+    
+    try:
+        local_path = pdf_generator_service.generate_resume(pdf_data, filename)
+        # return full URL so frontend window.open works
+        doc_url = f"http://localhost:8000/api/static/resumes/tailored/{filename}"
+        doc_id = filename 
+        print(f"✅ Local PDF generated: {local_path}")
+    except Exception as e:
+        print(f"❌ Local PDF generation failed: {e}")
+        doc_id = "error"
+        doc_url = "#"
+
+    # Optional: Still try to create Google Doc if configured, but don't let it crash the request
+    try:
+        if settings.GOOGLE_SERVICE_ACCOUNT_FILE and settings.GOOGLE_DRIVE_FOLDER_ID:
+            template_id = "1sTsA0rOhi2M0JrEibVfG4Ig8LEc-MAyY"
+            new_title = f"{schema.personal.name} - Resume - {job.company_name} ({job.title})"
+            g_id, g_url = await google_docs_service.create_tailored_doc(
+                template_id=template_id,
+                replacements=replacements,
+                new_title=new_title,
+                folder_id=settings.GOOGLE_DRIVE_FOLDER_ID
+            )
+            # If Google succeeds, we can prefer it or just log it
+            print(f"✅ Google Doc also created: {g_url}")
+    except Exception as g_e:
+        print(f"⚠️ Google Doc creation failed (likely quota): {g_e}")
 
     # 4. Save to Database
     tailored_record = TailoredResume(
@@ -120,6 +148,13 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
     )
     db.add(tailored_record)
     db.commit()
+
+    if doc_url == "#":
+        return {
+            "status": "error",
+            "message": "Failed to generate local PDF resume. Check server logs.",
+            "job_id": job_id
+        }
 
     return {
         "status": "success",

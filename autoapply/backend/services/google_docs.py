@@ -61,7 +61,9 @@ class GoogleDocsService:
                 copy_body['parents'] = [folder_id]
                 
             drive_response = self.drive_service.files().copy(
-                fileId=template_id, body=copy_body
+                fileId=template_id, 
+                body=copy_body,
+                supportsAllDrives=True
             ).execute()
             
             new_doc_id = drive_response.get('id')

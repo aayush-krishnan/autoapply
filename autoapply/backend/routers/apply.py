@@ -26,17 +26,30 @@ async def trigger_auto_apply(job_id: str, db: Session = Depends(get_db)):
 
     # 3. Fetch Tailored Resume
     tailored = db.query(TailoredResume).filter(TailoredResume.job_id == job_id).first()
-    if not tailored or not tailored.google_doc_id:
+    if not tailored:
         raise HTTPException(status_code=400, detail="Tailored Resume not generated for this job yet.")
 
-    # 4. Export the Google Doc as PDF
+    # 4. Determine Resume Path (Local or Google Doc)
     pdf_filename = f"resume_{job_id}.pdf"
-    pdf_path = os.path.join("/tmp", pdf_filename) # Using /tmp for now
+    pdf_path = os.path.join("/tmp", pdf_filename)
     
-    try:
-        await google_docs_service.export_doc_as_pdf(tailored.google_doc_id, pdf_path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to export PDF: {e}")
+    # If it's a local filename (doesn't start with '#' and isn't a long Google ID)
+    if tailored.google_doc_id and tailored.google_doc_id.startswith("Resume_") and tailored.google_doc_id.endswith(".pdf"):
+        # This is a local file
+        local_dir = os.path.join(os.getcwd(), "data", "resumes", "tailored")
+        pdf_path = os.path.join(local_dir, tailored.google_doc_id)
+        if not os.path.exists(pdf_path):
+            raise HTTPException(status_code=404, detail="Tailored local PDF file missing on server.")
+        print(f"📄 Using local PDF for auto-apply: {pdf_path}")
+    elif tailored.google_doc_id and len(tailored.google_doc_id) > 20:
+        # Likely a Google Doc ID
+        try:
+            print(f"🌐 Exporting Google Doc {tailored.google_doc_id} to PDF...")
+            await google_docs_service.export_doc_as_pdf(tailored.google_doc_id, pdf_path)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to export Google Doc PDF: {e}")
+    else:
+        raise HTTPException(status_code=400, detail="Tailored resume data is invalid or missing ID.")
 
     # 5. Run the Playwright script
     try:
