@@ -23,7 +23,7 @@ class Company(Base):
     __tablename__ = "companies"
 
     id = Column(String, primary_key=True, default=generate_uuid)
-    name = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False, unique=True, index=True)
     website = Column(String, nullable=True)
     industry = Column(String, nullable=True)
     size_range = Column(String, nullable=True)
@@ -40,22 +40,22 @@ class JobListing(Base):
     __tablename__ = "job_listings"
 
     id = Column(String, primary_key=True, default=generate_uuid)
-    company_id = Column(String, ForeignKey("companies.id"), nullable=True)
-    title = Column(String, nullable=False)
+    company_id = Column(String, ForeignKey("companies.id"), nullable=True, index=True)
+    title = Column(String, nullable=False, index=True)
     description = Column(Text, nullable=True)
-    location = Column(String, nullable=True)
+    location = Column(String, nullable=True, index=True)
     experience_level = Column(String, nullable=True)
     salary_range = Column(String, nullable=True)
-    source_platform = Column(String, nullable=False)  # "linkedin", "indeed", "glassdoor"
+    source_platform = Column(String, nullable=False, index=True)  # "linkedin", "indeed", "glassdoor"
     source_url = Column(String, nullable=False, unique=True)
-    match_score = Column(Integer, nullable=True)  # 0-100
+    match_score = Column(Integer, nullable=True, index=True)  # 0-100
     extracted_keywords = Column(JSON, nullable=True)
     visa_info = Column(String, nullable=True)  # "cpt_opt_ok", "no_sponsorship", "unknown"
-    company_name = Column(String, nullable=True)  # Denormalized for easy display
-    is_dismissed = Column(Boolean, default=False)
+    company_name = Column(String, nullable=True, index=True)  # Denormalized for easy display
+    is_dismissed = Column(Boolean, default=False, index=True)
     posted_at = Column(DateTime, nullable=True)
-    discovered_at = Column(DateTime, default=utcnow)
-    status = Column(String, default="new")  # "new", "interested", "applied", "dismissed"
+    discovered_at = Column(DateTime, default=utcnow, index=True)
+    status = Column(String, default="new", index=True)  # "new", "interested", "applied", "dismissed"
 
     # Relationships
     company = relationship("Company", back_populates="job_listings")

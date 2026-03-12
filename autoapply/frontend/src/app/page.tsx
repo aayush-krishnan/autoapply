@@ -5,6 +5,7 @@ import { Search, MapPin, SlidersHorizontal, RefreshCw, Briefcase } from "lucide-
 import StatsBar from "@/components/StatsBar";
 import JobCard, { JobListing } from "@/components/JobCard";
 import { motion } from "framer-motion";
+import { apiRequest } from "@/lib/api";
 
 export default function Dashboard() {
   const [jobs, setJobs] = useState<JobListing[]>([]);
@@ -25,19 +26,13 @@ export default function Dashboard() {
       if (location) params.append("location", location);
       if (minScore) params.append("min_score", minScore);
 
-      const [jobsRes, statsRes] = await Promise.all([
-        fetch(`http://localhost:8000/api/jobs?${params.toString()}`),
-        fetch("http://localhost:8000/api/dashboard/summary"),
+      const [data, statsData] = await Promise.all([
+        apiRequest<any>(`/api/jobs?${params.toString()}`),
+        apiRequest<any>("/api/dashboard/summary"),
       ]);
 
-      if (jobsRes.ok) {
-        const data = await jobsRes.json();
-        setJobs(data.jobs);
-      }
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
-      }
+      setJobs(data.jobs);
+      setStats(statsData);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -52,14 +47,11 @@ export default function Dashboard() {
   const handleScrape = async () => {
     setScraping(true);
     try {
-      const res = await fetch("http://localhost:8000/api/jobs/scrape", {
+      await apiRequest("/api/jobs/scrape", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sources: ["indeed", "linkedin", "twitter", "wellfound"] }),
       });
-      if (res.ok) {
-        await fetchDashboardData();
-      }
+      await fetchDashboardData();
     } catch (error) {
       console.error("Scrape failed:", error);
     } finally {
@@ -69,15 +61,10 @@ export default function Dashboard() {
 
   const handleDismiss = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/jobs/${id}/dismiss`, {
-        method: "PUT",
-      });
-      if (res.ok) {
-        setJobs(jobs.filter((j) => j.id !== id));
-        fetch("http://localhost:8000/api/dashboard/summary")
-          .then(res => res.json())
-          .then(data => setStats(data));
-      }
+      await apiRequest(`/api/jobs/${id}/dismiss`, { method: "PUT" });
+      setJobs(jobs.filter((j) => j.id !== id));
+      const statsData = await apiRequest<any>("/api/dashboard/summary");
+      setStats(statsData);
     } catch (e) {
       console.error(e);
     }

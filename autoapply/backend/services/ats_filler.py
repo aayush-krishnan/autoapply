@@ -61,7 +61,8 @@ async def fill_greenhouse_form(page, profile_data, resume_path):
         if resume_input and os.path.exists(resume_path):
             await resume_input.set_input_files(resume_path)
             logging.info(f"Uploaded resume: {resume_path}")
-            await page.wait_for_timeout(2000)
+            # Wait for Greenhouse to process the upload (spinner usually disappears)
+            await page.wait_for_selector(".upload-success-icon", timeout=10000, state="visible")
 
         # 2.1 Cover Letter (if available as a field, optional)
         cl_input = await page.query_selector("textarea[id='cover_letter_text'], input[id='cover_letter_upload']")
@@ -157,7 +158,8 @@ async def fill_lever_form(page, profile_data, resume_path):
     resume_input = await page.query_selector("input[type='file'][name='resume']")
     if resume_input and os.path.exists(resume_path):
         await resume_input.set_input_files(resume_path)
-        await page.wait_for_timeout(2000)
+        # Lever typically shows a success checkmark or text after upload
+        await page.wait_for_selector(".file-upload-success", timeout=10000, state="attached")
 
     # AI Fallback for custom questions
     custom_inputs = await page.query_selector_all("input[type='text'], textarea, input[type='url']")
@@ -192,8 +194,8 @@ async def fill_workday_form(page, profile_data, resume_path):
         upload_input = await page.query_selector("input[type='file']")
         if upload_input: 
             await upload_input.set_input_files(resume_path)
-            # Wait for upload processing
-            await page.wait_for_timeout(3000)
+            # Wait for Workday to acknowledge the upload
+            await page.wait_for_load_state("networkidle")
     else:
         # Manual fill if autofill isn't an option
         first_name = await page.query_selector("[data-automation-id='legalNameSection_firstName']")
@@ -209,7 +211,7 @@ async def fill_workday_form(page, profile_data, resume_path):
     next_btn = await page.query_selector("[data-automation-id='bottomBarNextButton']")
     if next_btn:
         await next_btn.click()
-        await page.wait_for_timeout(2000)
+        await page.wait_for_load_state("networkidle")
     
     # AI Fallback for screening questions on subsequent pages
     custom_inputs = await page.query_selector_all("input[type='text'], textarea")

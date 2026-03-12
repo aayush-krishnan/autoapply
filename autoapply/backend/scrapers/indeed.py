@@ -1,13 +1,10 @@
-"""Indeed job scraper using HTTP requests and HTML parsing."""
-
+import httpx
 import random
 import asyncio
 from bs4 import BeautifulSoup
 from scrapers import BaseScraper, ScrapedJob
 from urllib.parse import quote_plus
 import re
-
-from scrapers import BaseScraper, ScrapedJob
 
 
 class IndeedScraper(BaseScraper):
@@ -20,6 +17,10 @@ class IndeedScraper(BaseScraper):
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
     ]
+
+    @property
+    def source_name(self) -> str:
+        return "indeed"
 
     def _get_headers(self) -> dict:
         return {
@@ -37,7 +38,8 @@ class IndeedScraper(BaseScraper):
         all_jobs: list[ScrapedJob] = []
         seen_urls: set[str] = set()
 
-        async with httpx.AsyncClient(headers=self._get_headers(), timeout=30.0, follow_redirects=True) as client:
+        proxy = settings.PROXY_URL if settings.PROXY_URL else None
+        async with httpx.AsyncClient(headers=self._get_headers(), timeout=30.0, follow_redirects=True, proxy=proxy) as client:
             for keyword in keywords:
                 for location in locations:
                     await asyncio.sleep(random.uniform(2.0, 5.0))

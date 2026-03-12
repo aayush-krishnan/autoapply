@@ -24,6 +24,10 @@ class LinkedInScraper(BaseScraper):
         "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
     ]
 
+    @property
+    def source_name(self) -> str:
+        return "linkedin"
+
     def _get_headers(self) -> dict:
         return {
             "User-Agent": random.choice(self.USER_AGENTS),
@@ -53,7 +57,8 @@ class LinkedInScraper(BaseScraper):
         all_jobs: list[ScrapedJob] = []
         seen_urls: set[str] = set()
 
-        async with httpx.AsyncClient(headers=self._get_headers(), timeout=30.0, follow_redirects=True) as client:
+        proxy = settings.PROXY_URL if settings.PROXY_URL else None
+        async with httpx.AsyncClient(headers=self._get_headers(), timeout=30.0, follow_redirects=True, proxy=proxy) as client:
             for keyword in keywords:
                 for location in locations:
                     # Random jitter before starting a new combination

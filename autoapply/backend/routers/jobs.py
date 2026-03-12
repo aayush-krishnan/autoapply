@@ -18,6 +18,9 @@ from scrapers.indeed import IndeedScraper
 from scrapers.linkedin import LinkedInScraper
 from scrapers.wellfound import WellfoundScraper
 from scrapers.twitter import TwitterScraper
+from scrapers.simplyhired import SimplyHiredScraper
+from scrapers.builtin import BuiltInScraper
+from scrapers.ziprecruiter import ZipRecruiterScraper
 from services.scorer import score_job
 from services.dedup import find_existing_job
 from config import settings
@@ -142,8 +145,12 @@ async def trigger_scrape(
 ):
     """Trigger a manual job scrape from specified sources."""
     if request is None:
-        request = ScrapeRequest()
+        request = ScrapeRequest(sources=["indeed", "linkedin", "wellfound", "twitter", "simplyhired", "builtin", "ziprecruiter"])
+    
+    return await run_scrape_logic(db, request.sources)
 
+async def run_scrape_logic(db: Session, sources: list[str]):
+    """Core logic to run scrapers, score jobs, and save to DB."""
     start_time = time.time()
     total_found = 0
     total_new = 0
@@ -151,7 +158,7 @@ async def trigger_scrape(
 
     # Create scraper run record
     scraper_run = ScraperRun(
-        source=",".join(request.sources),
+        source=",".join(sources),
         status="running",
     )
     db.add(scraper_run)
@@ -162,9 +169,12 @@ async def trigger_scrape(
         "linkedin": LinkedInScraper(),
         "wellfound": WellfoundScraper(),
         "twitter": TwitterScraper(),
+        "simplyhired": SimplyHiredScraper(),
+        "builtin": BuiltInScraper(),
+        "ziprecruiter": ZipRecruiterScraper(),
     }
 
-    for source_name in request.sources:
+    for source_name in sources:
         scraper = scrapers.get(source_name)
         if not scraper:
             continue

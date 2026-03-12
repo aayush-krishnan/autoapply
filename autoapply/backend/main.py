@@ -8,13 +8,43 @@ from database import engine, init_db
 from routers import jobs, dashboard, resumes, apply
 
 
+from apscheduler.schedulers.background import BackgroundScheduler
+import asyncio
+from database import SessionLocal
+import datetime
+
+def run_automated_scrape():
+    """Background task to trigger a fresh scrape."""
+    print(f"⏰ [{datetime.datetime.now()}] Starting automated hourly scrape...")
+    db = SessionLocal()
+    try:
+        from routers.jobs import run_scrape_logic
+        # For simplicity in background, we run for all common sources
+        sources = ["indeed", "linkedin", "wellfound", "twitter", "simplyhired", "builtin", "ziprecruiter"]
+        # Use existing event loop or create one for the async scrape
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_scrape_logic(db, sources))
+        loop.close()
+        print(f"✅ [{datetime.datetime.now()}] Automated scrape completed.")
+    except Exception as e:
+        print(f"❌ [{datetime.datetime.now()}] Scrape failed: {e}")
+    finally:
+        db.close()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
     print("🚀 AutoApply Backend starting...")
     init_db()
-    print("✅ Database initialized")
+    
+    # Init scheduler
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_automated_scrape, 'interval', hours=1, next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=10))
+    scheduler.start()
+    print("📅 [Scheduler] Hourly background scrape scheduled.")
+    
     yield
+    scheduler.shutdown()
     print("👋 AutoApply Backend shutting down")
 
 

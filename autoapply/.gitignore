@@ -31,3 +31,8 @@ out/
 *.swp
 *.swo
 .DS_Store
+backend/update_profile_final.py
+backend/cleanup_profile.py
+backend/ingest_resume.py
+backend/*.pdf
+backend/autoapply.db

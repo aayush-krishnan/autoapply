@@ -7,7 +7,7 @@ import { Home, Briefcase, FileText, Send, Settings, LineChart, User } from "luci
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const [userName, setUserName] = useState("Aayush (User)");
+    const [userName, setUserName] = useState("User");
 
     useEffect(() => {
         // Fetch real name from master profile
@@ -25,7 +25,7 @@ export default function Sidebar() {
         { name: "Dashboard", href: "/", icon: Home },
         { name: "Jobs Feed", href: "/jobs", icon: Briefcase },
         { name: "Resumes", href: "/resumes", icon: FileText },
-        { name: "Applications", href: "/tracker", icon: LineChart },
+        { name: "Applications", href: "/applications", icon: LineChart },
         { name: "Outreach", href: "/outreach", icon: Send },
         { name: "Settings", href: "/settings", icon: Settings },
     ];

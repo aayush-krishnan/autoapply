@@ -19,6 +19,7 @@ class Settings:
     # Scraper
     SCRAPE_INTERVAL_HOURS: int = int(os.getenv("SCRAPE_INTERVAL_HOURS", "6"))
     MAX_JOBS_PER_SCRAPE: int = int(os.getenv("MAX_JOBS_PER_SCRAPE", "100"))
+    PROXY_URL: str = os.getenv("PROXY_URL", "") # e.g. "http://user:pass@host:port"
 
     # Target search config - Keyword Permutation Engine
     ROLE_BASE: list[str] = [

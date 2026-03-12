@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, Zap, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { JobListing } from "./JobCard";
+import { apiRequest } from "@/lib/api";
 
 interface AutoApplyModalProps {
     job: JobListing;
@@ -17,25 +18,18 @@ export default function AutoApplyModal({ job, onClose }: AutoApplyModalProps) {
         setMessage("Exporting tailored resume and launching automated browser...");
 
         try {
-            const res = await fetch(`http://localhost:8000/api/apply/${job.id}`, {
+            const data = await apiRequest<any>(`/api/apply/${job.id}`, {
                 method: "POST"
             });
-            const data = await res.json();
-
-            if (!res.ok) {
-                setStatus("error");
-                setMessage(data.detail || "Failed to trigger auto-apply script.");
-                return;
-            }
 
             setStatus("success");
             setMessage("Application form filled successfully! Check the browser to review.");
             if (data.screenshot) {
                 setScreenshot(data.screenshot); // In a real app we'd serve this from a static route
             }
-        } catch (e) {
+        } catch (e: any) {
             setStatus("error");
-            setMessage("Network error occurred communicating with the application engine.");
+            setMessage(e.message || "An unexpected error occurred.");
             console.error(e);
         }
     };

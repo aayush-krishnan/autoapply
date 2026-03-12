@@ -25,7 +25,7 @@ async def trigger_auto_apply(job_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Master Profile not found. Please fill it out first.")
 
     # 3. Fetch Tailored Resume
-    tailored = db.query(TailoredResume).filter(TailoredResume.job_listing_id == job_id).first()
+    tailored = db.query(TailoredResume).filter(TailoredResume.job_id == job_id).first()
     if not tailored or not tailored.google_doc_id:
         raise HTTPException(status_code=400, detail="Tailored Resume not generated for this job yet.")
 

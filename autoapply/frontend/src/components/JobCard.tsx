@@ -3,6 +3,7 @@ import { Calendar, Building2, MapPin, Globe, CheckCircle2, ShieldAlert, Loader2,
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import AutoApplyModal from "./AutoApplyModal";
+import { apiRequest } from "@/lib/api";
 
 export interface JobListing {
     id: string;
@@ -48,15 +49,9 @@ export default function JobCard({ job, onDismiss }: JobCardProps) {
     const handleTailor = async () => {
         setIsTailoring(true);
         try {
-            const res = await fetch(`http://localhost:8000/api/resumes/tailor/${job.id}`, {
+            const data = await apiRequest<any>(`/api/resumes/tailor/${job.id}`, {
                 method: "POST"
             });
-            const data = await res.json();
-
-            if (!res.ok) {
-                alert(data.detail || "Failed to tailor resume");
-                return;
-            }
 
             if (data.google_doc_url) {
                 window.open(data.google_doc_url, "_blank");
