@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Briefcase, FileText, Send, Settings, LineChart, User } from "lucide-react";
+import { Home, Briefcase, FileText, Send, Settings, LineChart, ChevronRight } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 export default function Sidebar() {
     const pathname = usePathname();
     const [userName, setUserName] = useState("User");
 
     useEffect(() => {
-        // Fetch real name from master profile
         apiRequest<any>("/api/resumes/master")
             .then(data => {
                 if (data?.personal?.name) {
@@ -31,12 +31,12 @@ export default function Sidebar() {
     ];
 
     return (
-        <div className="w-64 bg-[#111111] border-r border-[#222] flex flex-col pt-6 h-full">
-            <div className="px-6 mb-8">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
+        <div className="w-64 bg-black flex flex-col pt-8 h-full">
+            <div className="px-8 mb-10">
+                <h1 className="text-lg font-bold tracking-tight text-white">
                     AutoApply
                 </h1>
-                <p className="text-xs text-gray-400 mt-1">MEM Job Automation</p>
+                <div className="h-[1px] w-8 bg-white/20 mt-3" />
             </div>
 
             <nav className="flex-1 px-4 space-y-1">
@@ -46,27 +46,33 @@ export default function Sidebar() {
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                                ? "bg-blue-500/10 text-blue-400"
-                                : "text-gray-400 hover:text-gray-100 hover:bg-[#222]"
-                                }`}
+                            className={cn(
+                                "flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group",
+                                isActive
+                                    ? "bg-white/[0.06] text-white font-medium"
+                                    : "text-white/40 hover:text-white hover:bg-white/[0.03]"
+                            )}
                         >
-                            <item.icon className="w-4 h-4" />
-                            {item.name}
+                            <div className="flex items-center gap-3">
+                                <item.icon className={cn("w-4 h-4 transition-colors", isActive ? "text-white" : "text-white/20 group-hover:text-white/40")} />
+                                {item.name}
+                            </div>
+                            {isActive && <div className="w-1 h-1 rounded-full bg-white" />}
                         </Link>
                     );
                 })}
             </nav>
 
-            <div className="p-6 border-t border-[#1a1a1a]">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#111] border border-[#333] flex items-center justify-center font-bold text-sm text-white shadow-inner">
+            <div className="p-6 border-t border-white/[0.06] bg-white/[0.01]">
+                <div className="flex items-center gap-3 px-2">
+                    <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center font-bold text-xs ring-4 ring-white/5">
                         {userName.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                        <div className="text-sm font-semibold text-white tracking-tight">{userName}</div>
-                        <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-0.5">Free Tier</div>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-white truncate">{userName}</div>
+                        <div className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Standard</div>
                     </div>
+                    <ChevronRight className="w-3 h-3 text-white/10" />
                 </div>
             </div>
         </div>

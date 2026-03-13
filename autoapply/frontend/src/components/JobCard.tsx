@@ -1,9 +1,15 @@
+"use client";
+
 import { useState } from "react";
-import { Calendar, Building2, MapPin, Globe, CheckCircle2, ShieldAlert, Loader2, Zap } from "lucide-react";
+import { Calendar, Building2, MapPin, Globe, CheckCircle2, ShieldAlert, Loader2, Zap, ExternalLink, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import AutoApplyModal from "./AutoApplyModal";
 import { apiRequest } from "@/lib/api";
+import { Card } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { toast } from "sonner";
 
 export interface JobListing {
     id: string;
@@ -29,14 +35,12 @@ export default function JobCard({ job, onDismiss }: JobCardProps) {
     const [isTailoring, setIsTailoring] = useState(false);
     const [showApplyModal, setShowApplyModal] = useState(false);
 
-    // Score styling logic
-    const getScoreColor = (score: number) => {
-        if (score >= 80) return "text-emerald-400 border-emerald-400/30 bg-emerald-400/10";
-        if (score >= 60) return "text-amber-400 border-amber-400/30 bg-amber-400/10";
-        return "text-red-400 border-red-400/30 bg-red-400/10";
+    const getScoreVariant = (score: number) => {
+        if (score >= 80) return "success";
+        if (score >= 60) return "warning";
+        return "danger";
     };
 
-    // Convert date to readable relative format
     const getRelativeTime = (isoString?: string) => {
         if (!isoString) return "Recently";
         try {
@@ -50,118 +54,105 @@ export default function JobCard({ job, onDismiss }: JobCardProps) {
         e.preventDefault();
         e.stopPropagation();
         setIsTailoring(true);
+        const toastId = toast.loading("Tailoring your resume...");
         try {
             const data = await apiRequest<any>(`/api/resumes/tailor/${job.id}`, {
                 method: "POST"
             });
 
             if (data.google_doc_url && data.google_doc_url !== "#") {
+                toast.success("Resume tailored! Opening Google Doc...", { id: toastId });
                 window.open(data.google_doc_url, "_blank");
-            } else if (data.status === "error") {
-                alert("Failed to generate resume. See console for details.");
+            } else {
+                toast.error("Format error in resume response", { id: toastId });
             }
         } catch (e) {
-            console.error("Error tailoring resume:", e);
-            alert("An error occurred while tailoring the resume.");
+            toast.error("Failed to tailor resume", { id: toastId });
         } finally {
             setIsTailoring(false);
         }
     };
 
     return (
-        <motion.div 
-            layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="glass-effect rounded-2xl p-6 flex flex-col gap-4 group relative overflow-hidden"
-        >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
-            {/* Header: Title, Score, Actions */}
-            <div className="flex justify-between items-start relative z-10">
-                <div className="flex-1">
-                    <a
-                        href={job.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1 leading-tight"
-                        title={job.title}
-                    >
+        <Card className="flex flex-col gap-6 group h-full relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button 
+                    variant="ghost" 
+                    className="h-8 w-8 p-0 rounded-full hover:bg-red-500/10 hover:text-red-400"
+                    onClick={() => onDismiss(job.id)}
+                >
+                    <X className="w-4 h-4" />
+                </Button>
+            </div>
+
+            {/* Header */}
+            <div className="flex justify-between items-start gap-4">
+                <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="ghost" className="px-0 lowercase text-white/30">{job.source_platform}</Badge>
+                        <span className="text-white/10 text-[10px]">•</span>
+                        <span className="text-white/30 text-[10px] uppercase font-bold tracking-widest">{getRelativeTime(job.discovered_at)}</span>
+                    </div>
+                    <h2 className="text-xl font-bold text-white tracking-tight leading-snug truncate group-hover:text-blue-400 transition-colors">
                         {job.title}
-                    </a>
-                    <div className="flex items-center gap-2 text-sm text-gray-400 mt-2">
-                        <Building2 className="w-4 h-4 text-blue-500/80" />
-                        <span className="font-semibold text-gray-200">{job.company_name}</span>
+                    </h2>
+                    <div className="flex items-center gap-2 text-white/50 text-sm font-medium">
+                        <Building2 className="w-3.5 h-3.5" />
+                        {job.company_name}
                     </div>
                 </div>
-
-                {/* Match Score Badge */}
-                <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl border-2 shadow-2xl ${getScoreColor(job.match_score || 0)}`}>
-                    <span className="text-xl font-black">{job.match_score || 0}</span>
-                    <span className="text-[9px] uppercase font-black tracking-tighter opacity-70">Match</span>
+                
+                <div className="flex flex-col items-center">
+                    <div className="text-2xl font-bold tracking-tighter text-white">
+                        {job.match_score}
+                    </div>
+                    <div className="text-[9px] uppercase font-black tracking-widest text-white/20">Match</div>
                 </div>
             </div>
 
-            {/* Meta details */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-gray-400 font-medium relative z-10">
-                <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg">
-                    <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                    {job.location}
-                </div>
-                <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg">
-                    <Globe className="w-3.5 h-3.5 text-indigo-500" />
-                    <span className="capitalize">{job.source_platform}</span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg">
-                    <Calendar className="w-3.5 h-3.5 text-purple-500" />
-                    {getRelativeTime(job.discovered_at)}
+            {/* Details & Tags */}
+            <div className="space-y-4 flex-1">
+                <div className="flex flex-wrap gap-2 text-xs text-white/40">
+                    <div className="flex items-center gap-1.5 bg-white/[0.04] px-2.5 py-1 rounded-lg border border-white/[0.04]">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {job.location}
+                    </div>
+                    {job.h1b_sponsor_tier === "tier1" && (
+                        <Badge variant="success" className="rounded-lg">H1B Tier 1</Badge>
+                    )}
+                    {job.visa_info === "cpt_opt_ok" && (
+                        <Badge variant="default" className="rounded-lg border-emerald-500/20 text-emerald-400 bg-emerald-500/5">CPT/OPT Friendly</Badge>
+                    )}
                 </div>
             </div>
 
-            {/* Tags (Visa info, H1B) */}
-            <div className="flex gap-2 mt-auto pt-4 border-t border-white/10 relative z-10">
-                {job.visa_info === "cpt_opt_ok" && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
-                        <CheckCircle2 className="w-3 h-3" /> CPT/OPT OK
-                    </span>
-                )}
-                {job.visa_info === "no_sponsorship" && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-wider border border-red-500/20">
-                        <ShieldAlert className="w-3 h-3" /> No Sponsor
-                    </span>
-                )}
-                {job.h1b_sponsor_tier === "tier1" && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-wider border border-blue-500/20">
-                        Tier 1 H1B
-                    </span>
-                )}
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="flex gap-3 pt-2 relative z-10">
-                <button
-                    onClick={(e) => handleTailor(e)}
+            {/* Actions */}
+            <div className="flex gap-2.5 pt-4">
+                <Button 
+                    variant="outline" 
+                    className="flex-1 rounded-xl h-11"
+                    onClick={handleTailor}
                     disabled={isTailoring}
-                    className="flex-1 flex justify-center items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 disabled:opacity-50 text-white text-sm font-bold py-3 rounded-xl transition-all active:scale-95"
                 >
-                    {isTailoring && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isTailoring ? "Tailoring..." : "Tailor Resume"}
-                </button>
-                <button
+                    {isTailoring ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Loader2 className="w-3.5 h-3.5" />}
+                    {isTailoring ? "Tailoring..." : "Tailor"}
+                </Button>
+                <Button 
+                    variant="primary" 
+                    className="flex-1 rounded-xl h-11 shadow-lg shadow-white/5 font-bold"
                     onClick={() => setShowApplyModal(true)}
-                    className="flex-1 flex justify-center items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 group/btn"
                 >
-                    <Zap className="w-4 h-4 group-hover/btn:fill-current" />
+                    <Zap className="w-3.5 h-3.5 fill-black" />
                     Auto-Apply
-                </button>
-                <button
-                    onClick={() => onDismiss(job.id)}
-                    className="px-4 flex items-center justify-center bg-transparent hover:bg-red-500/10 text-gray-400 hover:text-red-400 text-xs font-bold py-3 rounded-xl transition-all border border-transparent hover:border-red-500/20 active:scale-95"
+                </Button>
+                <a 
+                    href={job.source_url} 
+                    target="_blank" 
+                    rel="noopener" 
+                    className="inline-flex items-center justify-center p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] transition-colors"
                 >
-                    Dismiss
-                </button>
+                    <ExternalLink className="w-4 h-4 text-white/40" />
+                </a>
             </div>
 
             <AnimatePresence>
@@ -169,7 +160,6 @@ export default function JobCard({ job, onDismiss }: JobCardProps) {
                     <AutoApplyModal job={job} onClose={() => setShowApplyModal(false)} />
                 )}
             </AnimatePresence>
-
-        </motion.div>
+        </Card>
     );
 }
