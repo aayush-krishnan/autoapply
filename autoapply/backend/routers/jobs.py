@@ -86,11 +86,11 @@ async def list_jobs(
         else:
             # Check config tiers
             company_lower = (job.company_name or "").lower()
-            if any(c.lower() in company_lower for c in settings.H1B_TIER1):
+            if any(c in company_lower for c in settings.H1B_TIER1_LOWER):
                 resp.h1b_sponsor_tier = "tier1"
-            elif any(c.lower() in company_lower for c in settings.H1B_TIER2):
+            elif any(c in company_lower for c in settings.H1B_TIER2_LOWER):
                 resp.h1b_sponsor_tier = "tier2"
-            elif any(c.lower() in company_lower for c in settings.H1B_NO_SPONSOR):
+            elif any(c in company_lower for c in settings.H1B_NO_SPONSOR_LOWER):
                 resp.h1b_sponsor_tier = "no_sponsor"
         job_responses.append(resp)
 
@@ -186,7 +186,7 @@ async def run_scrape_logic(db: Session, sources: list[str]):
 
         try:
             # Randomly sample to avoid rate limits while casting a broad net across runs
-            selected_keywords = random.sample(settings.TARGET_KEYWORDS, min(5, len(settings.TARGET_KEYWORDS)))
+            selected_keywords = random.sample(settings.TARGET_KEYWORDS, min(20, len(settings.TARGET_KEYWORDS)))
             selected_locations = random.sample(settings.TARGET_CITIES, min(4, len(settings.TARGET_CITIES)))
 
             raw_jobs = await scraper.scrape(
@@ -212,11 +212,11 @@ async def run_scrape_logic(db: Session, sources: list[str]):
                     # Determine H1B tier
                     h1b_tier = None
                     cl = raw_job.company_name.lower()
-                    if any(c.lower() in cl for c in settings.H1B_TIER1):
+                    if any(c in cl for c in settings.H1B_TIER1_LOWER):
                         h1b_tier = "tier1"
-                    elif any(c.lower() in cl for c in settings.H1B_TIER2):
+                    elif any(c in cl for c in settings.H1B_TIER2_LOWER):
                         h1b_tier = "tier2"
-                    elif any(c.lower() in cl for c in settings.H1B_NO_SPONSOR):
+                    elif any(c in cl for c in settings.H1B_NO_SPONSOR_LOWER):
                         h1b_tier = "no_sponsor"
 
                     company = Company(

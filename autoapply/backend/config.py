@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     # Google AI
     GEMINI_API_KEY: str = ""
-    API_KEY: str = "autoapply-secret-key-2026"
+    API_KEY: str = ""
 
     # Google Docs / Drive
     GOOGLE_SERVICE_ACCOUNT_FILE: str = "google-credentials.json"

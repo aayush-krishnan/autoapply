@@ -14,6 +14,7 @@ export async function apiRequest<T>(
         ...options,
         headers: {
             "Content-Type": "application/json",
+            "X-API-Key": process.env.NEXT_PUBLIC_API_KEY || "",
             ...options.headers,
         },
     });

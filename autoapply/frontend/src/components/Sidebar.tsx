@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Briefcase, FileText, Send, Settings, LineChart, User } from "lucide-react";
+import { apiRequest } from "@/lib/api";
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -11,8 +12,7 @@ export default function Sidebar() {
 
     useEffect(() => {
         // Fetch real name from master profile
-        fetch("http://localhost:8000/api/resumes/master")
-            .then(res => res.json())
+        apiRequest<any>("/api/resumes/master")
             .then(data => {
                 if (data?.personal?.name) {
                     setUserName(data.personal.name);

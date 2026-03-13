@@ -74,7 +74,7 @@ class SystemConfig(Base):
     __tablename__ = "system_config"
     key = Column(String, primary_key=True)
     value = Column(String, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 class ScraperRun(Base):
     __tablename__ = "scraper_runs"

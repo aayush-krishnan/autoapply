@@ -11,6 +11,7 @@ from pathlib import Path
 # Paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = BASE_DIR / "data" / "resumes" / "tailored"
+FONT_DIR = BASE_DIR / "assets" / "fonts"
 
 logger = logging.getLogger(__name__)
 
@@ -45,17 +46,28 @@ class PDFGeneratorService:
 
     def _create_base_pdf(self):
         pdf = ResumePDF()
-        # Try to add Unicode-friendly font if available on macOS
+        # Look for bundled DejaVuSans (handles Unicode well)
+        regular = FONT_DIR / "DejaVuSans.ttf"
+        bold = FONT_DIR / "DejaVuSans-Bold.ttf"
+        
+        if regular.exists() and bold.exists():
+            try:
+                pdf.add_font("DejaVu", "", str(regular))
+                pdf.add_font("DejaVu", "B", str(bold))
+                return pdf, "DejaVu"
+            except Exception as e:
+                logger.warning(f"Failed to load DejaVu fonts: {e}")
+                
+        # Fallback to macOS-specific Arial Unicode if available
         unicode_font_path = "/Library/Fonts/Arial Unicode.ttf"
         if os.path.exists(unicode_font_path):
             try:
-                # Arial Unicode MS supports most characters including bullets and dashes
                 pdf.add_font("ArialUnicode", "", unicode_font_path)
                 return pdf, "ArialUnicode"
             except Exception as e:
                 logger.warning(f"Failed to load Arial Unicode: {e}")
         
-        # Fallback to standard Helvetica (safe but limited)
+        # Final fallback to standard Helvetica
         return pdf, "helvetica"
 
     def generate_resume(self, data: dict, output_filename: str) -> str:

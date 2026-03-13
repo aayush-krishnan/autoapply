@@ -6,7 +6,17 @@ import json
 
 class AIFormFiller:
     def __init__(self):
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        self._model = None
+
+    @property
+    def model(self):
+        if self._model is None:
+            from config import settings
+            import google.generativeai as genai
+            # Ensure configured (lifespan usually handles this, but property ensures it)
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            self._model = genai.GenerativeModel('gemini-2.0-flash')
+        return self._model
 
     async def answer_question(self, question_text: str, profile_data: dict) -> str:
         """

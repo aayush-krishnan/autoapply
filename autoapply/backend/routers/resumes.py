@@ -12,7 +12,7 @@ from pathlib import Path
 
 from database import get_db
 from models import JobListing
-from models_profile import MasterProfile, TailoredResume
+from models_profile import MasterProfile, TailoredResume, ResumeSource
 from schemas_profile import MasterProfileSchema, TailoredResumeSchema
 from services.resume_tailor import resume_tailor_service
 from services.google_docs import google_docs_service
@@ -122,11 +122,11 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
         # return protected download URL
         doc_url = f"/api/resumes/download/{filename}"
         doc_id = filename 
+        source = ResumeSource.local
         logger.info(f"✅ Local PDF generated: {local_path}")
     except Exception as e:
-        logger.info(f"❌ Local PDF generation failed: {e}")
-        doc_id = "error"
-        doc_url = "#"
+        logger.error(f"❌ Local PDF generation failed for job {job_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
 
     # Optional: Still try to create Google Doc if configured, but don't let it crash the request
     try:
@@ -139,7 +139,10 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
                 new_title=new_title,
                 folder_id=settings.GOOGLE_DRIVE_FOLDER_ID
             )
-            # If Google succeeds, we can prefer it or just log it
+            # If Google succeeds, update the record later (we already have local URL as primary)
+            source = ResumeSource.google_doc
+            doc_id = g_id
+            doc_url = g_url
             logger.info(f"✅ Google Doc also created: {g_url}")
     except Exception as g_e:
         logger.info(f"⚠️ Google Doc creation failed (likely quota): {g_e}")
@@ -150,17 +153,12 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
         tailored_content=tailored_data,
         fidelity_score=fidelity,
         google_doc_id=doc_id,
-        google_doc_url=doc_url
+        google_doc_url=doc_url,
+        resume_source=source
     )
     db.add(tailored_record)
     db.commit()
 
-    if doc_url == "#":
-        return {
-            "status": "error",
-            "message": "Failed to generate local PDF resume. Check server logs.",
-            "job_id": job_id
-        }
 
     return {
         "status": "success",

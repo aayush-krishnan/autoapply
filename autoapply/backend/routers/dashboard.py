@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 from database import get_db
 from models import JobListing, Company
@@ -77,20 +77,14 @@ async def get_dashboard_summary(db: Session = Depends(get_db)):
     )
     jobs_by_source = {row[0]: row[1] for row in source_counts}
 
-    # Score distribution
-    high = db.query(JobListing).filter(
-        JobListing.match_score >= 80,
-        JobListing.is_dismissed == False,  # noqa: E712
-    ).count()
-    medium = db.query(JobListing).filter(
-        JobListing.match_score >= 60,
-        JobListing.match_score < 80,
-        JobListing.is_dismissed == False,  # noqa: E712
-    ).count()
-    low = db.query(JobListing).filter(
-        JobListing.match_score < 60,
-        JobListing.is_dismissed == False,  # noqa: E712
-    ).count()
+    # Score distribution (Single query optimization)
+    score_buckets = db.query(
+        func.sum(case((JobListing.match_score >= 80, 1), else_=0)).label("high"),
+        func.sum(case(((JobListing.match_score >= 60) & (JobListing.match_score < 80), 1), else_=0)).label("medium"),
+        func.sum(case((JobListing.match_score < 60, 1), else_=0)).label("low"),
+    ).filter(JobListing.is_dismissed == False).one()
+    
+    high, medium, low = score_buckets.high or 0, score_buckets.medium or 0, score_buckets.low or 0
 
     return DashboardSummary(
         total_jobs=total_jobs,

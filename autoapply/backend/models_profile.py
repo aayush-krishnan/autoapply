@@ -1,6 +1,7 @@
 """SQLAlchemy database models for Master Profile and Resumes."""
 
-from sqlalchemy import Column, String, JSON, DateTime, ForeignKey, Integer
+from sqlalchemy import Column, String, JSON, DateTime, ForeignKey, Integer, Enum as SAEnum
+import enum
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -20,6 +21,11 @@ class MasterProfile(Base):
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
+class ResumeSource(str, enum.Enum):
+    local = "local"
+    google_doc = "google_doc"
+    error = "error"
+
 class TailoredResume(Base):
     """
     Tracks a generated resume tailored for a specific job listing.
@@ -36,6 +42,7 @@ class TailoredResume(Base):
     fidelity_score = Column(Integer, nullable=True)  # Overall anti-hallucination score (0-100)
     google_doc_id = Column(String, nullable=True)
     google_doc_url = Column(String, nullable=True)
+    resume_source = Column(SAEnum(ResumeSource), default=ResumeSource.local, nullable=False)
     
     created_at = Column(DateTime, default=utcnow)
     
