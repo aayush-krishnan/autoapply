@@ -21,26 +21,6 @@ from database import engine, init_db
 from routers import jobs, dashboard, resumes, apply, config
 
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import asyncio
-import logging
-from database import SessionLocal
-import datetime
-
-async def run_automated_scrape_async():
-    """Background task to trigger a fresh scrape using the main event loop."""
-    logger.info("Starting automated hourly scrape...")
-    db = SessionLocal()
-    try:
-        from routers.jobs import run_scrape_logic
-        sources = ["indeed", "linkedin", "wellfound", "twitter", "simplyhired", "builtin", "ziprecruiter"]
-        await run_scrape_logic(db, sources)
-        logger.info("Automated scrape completed.")
-    except Exception as e:
-        logger.error("Scrape failed: %s", e)
-    finally:
-        db.close()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 AutoApply Backend starting...")
@@ -50,21 +30,10 @@ async def lifespan(app: FastAPI):
     
     init_db()
     
-    # Init scheduler
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(
-        run_automated_scrape_async, 
-        'interval', 
-        hours=1, 
-        next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=10)
-    )
-    scheduler.start()
-    logger.info("[Scheduler] Hourly background scrape scheduled.")
     from config import settings
     logger.info(f"📂 [Config] Google Drive Folder ID: {settings.GOOGLE_DRIVE_FOLDER_ID or 'NOT CONFIGURED'}")
     
     yield
-    scheduler.shutdown()
     logger.info("👋 AutoApply Backend shutting down")
 
 

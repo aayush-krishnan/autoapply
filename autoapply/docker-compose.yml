@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-autoapply}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autoapply_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-autoapply_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-autoapply}:${POSTGRES_PASSWORD:-autoapply_pass}@db:5432/${POSTGRES_DB:-autoapply_db}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      API_KEY: ${API_KEY}
+      REDIS_URL: redis://redis:6379/0
+      PLAYWRIGHT_HEADLESS: "true"
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data
+
+  celery_worker:
+    build: ./backend
+    command: celery -A celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-autoapply}:${POSTGRES_PASSWORD:-autoapply_pass}@db:5432/${POSTGRES_DB:-autoapply_db}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      API_KEY: ${API_KEY}
+      REDIS_URL: redis://redis:6379/0
+      PLAYWRIGHT_HEADLESS: "true"
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend/data:/app/data
+
+  celery_beat:
+    build: ./backend
+    command: celery -A celery_app beat --loglevel=info
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_KEY: ${API_KEY}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
