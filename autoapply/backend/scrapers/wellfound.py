@@ -1,8 +1,12 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """Wellfound (AngelList) scraper using Playwright and Google Dorking to bypass login walls."""
 
 from playwright.async_api import async_playwright
 import asyncio
 from scrapers import BaseScraper, ScrapedJob
+from config import settings
 
 class WellfoundScraper(BaseScraper):
     @property
@@ -61,12 +65,12 @@ class WellfoundScraper(BaseScraper):
                                     experience_level="entry_level",
                                 ))
                 except Exception as e:
-                    print(f"[Wellfound] Error parsing Google Dork result: {e}")
+                    logger.info(f"[Wellfound] Error parsing Google Dork result: {e}")
                 finally:
                     await page.close()
                     await asyncio.sleep(3) # Be very polite to Google
             
             await browser.close()
             
-        print(f"[Wellfound] Total unique jobs scraped via Dorking: {len(all_jobs)}")
+        logger.info(f"[Wellfound] Total unique jobs scraped via Dorking: {len(all_jobs)}")
         return all_jobs

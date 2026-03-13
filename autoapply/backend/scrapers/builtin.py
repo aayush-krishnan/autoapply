@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import httpx
 import random
 import asyncio
@@ -67,6 +70,6 @@ class BuiltInScraper(BaseScraper):
                                 description=""
                             ))
                     except Exception as e:
-                        print(f"[BuiltIn] Error: {e}")
+                        logger.info(f"[BuiltIn] Error: {e}")
                         
         return all_jobs

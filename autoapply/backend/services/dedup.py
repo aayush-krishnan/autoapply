@@ -26,28 +26,28 @@ def are_jobs_duplicate(job1_title: str, job1_company: str, job1_location: str,
     return similarity >= threshold
 
 
-def find_existing_job(db: Session, title: str, company_name: str,
-                      source_url: str) -> JobListing | None:
+def find_existing_job(db: Session, title: str, company: str, source_url: str):
     """
-    Check if a job already exists in the database.
-
-    First checks exact URL match, then fuzzy title+company match.
+    Find if a job already exists in the DB.
+    Check priority:
+    1. Exact URL match (fastest)
+    2. Exact title_hash match (O(1) with index)
+    3. Fuzzy match (fallback, computationally expensive)
     """
-    # 1. Exact URL match
-    existing = db.query(JobListing).filter(
-        JobListing.source_url == source_url
-    ).first()
-    if existing:
-        return existing
+    # 1. Exact URL
+    existing = db.query(JobListing).filter(JobListing.source_url == source_url).first()
+    if existing: return existing
 
-    # 2. Fuzzy match on title + company (for cross-platform dedup)
-    title_normalized = normalize_text(title)
-    company_normalized = normalize_text(company_name)
+    # 2. Title Hash (New production-grade O(1) check)
+    h = generate_title_hash(title, company)
+    existing = db.query(JobListing).filter(JobListing.title_hash == h).first()
+    if existing: return existing
 
-    # Get recent jobs from the same company
+    # 3. Fuzzy Match (Fallback for slight title variations)
+    # Load limited candidates from the same company to avoid full table scan
     candidates = db.query(JobListing).filter(
-        JobListing.company_name.ilike(f"%{company_normalized[:20]}%")
-    ).limit(50).all()
+        func.lower(JobListing.company_name) == company.lower()
+    ).limit(20).all()
 
     for candidate in candidates:
         if are_jobs_duplicate(

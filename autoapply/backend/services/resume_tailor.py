@@ -2,11 +2,14 @@
 
 import json
 import re
+import logging
 
 from services.gemini import gemini_service
 from services.google_docs import google_docs_service
 from schemas_profile import MasterProfileSchema, TailoredResumeSchema, TailoredExperienceEntry
 
+
+logger = logging.getLogger(__name__)
 
 class ResumeTailorService:
 
@@ -15,14 +18,22 @@ class ResumeTailorService:
         Uses Gemini to tailor a resume based on the Master Profile and Job Description.
         FEATURES: Strategic Keyword Embedding & Adaptive Summary.
         """
+        # Strip PII before sending to AI
+        safe_profile = master_profile.model_dump()
+        if "personal" in safe_profile:
+            # Keep only non-sensitive personal context
+            safe_profile["personal"] = {
+                "visa_status": "Requires sponsorship (F-1 student seeking CPT/OPT/H1B)"
+            }
+
         prompt = f"""You are an expert technical recruiter and resume writer specialized in ATS (Applicant Tracking System) optimization.
 Your task is to tailor a candidate's master resume to perfectly match a specific job description.
 
 Target Job: {job_title}
 Job Description: {job_description[:4000]}
 
-Candidate's Master Profile (JSON):
-{master_profile.model_dump_json(indent=2)}
+Candidate's Master Profile (Sanitized JSON):
+{json.dumps(safe_profile, indent=2)}
 
 CRITICAL TAILORING RULES:
 1. **Strategic Keyword Embedding**: Analyze the Job Description for key terms (technical skills, methodologies, keywords). Weave these keywords into the experience bullet points where they naturally fit, while MAINTAINING FACTUAL INTEGRITY.
@@ -57,7 +68,7 @@ Output Requirements:
             return tailored_data
             
         except Exception as e:
-            print(f"[Tailor] Error tailoring resume: {e}")
+            logger.error(f"[Tailor] Error tailoring resume: {e}")
             return master_profile.model_dump()
 
 

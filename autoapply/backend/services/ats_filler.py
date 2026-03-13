@@ -4,6 +4,7 @@ import logging
 import re
 import os
 from services.ai_form_filler import ai_filler
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,20 @@ PLATFORMS = {
     "LEVER": "jobs.lever.co",
     "WORKDAY": "myworkdayjobs.com"
 }
+
+class SafeProfileData(BaseModel):
+    """Pydantic model to strictly control what PII is passed to the browser subprocess."""
+    name: str
+    email: str
+    phone: str
+    linkedin: str | None = None
+    website: str | None = None
+    github: str | None = None
+    summary: str | None = None
+    experience: list[dict] = []
+    education: list[dict] = []
+    skills: list[str] = []
+    visa_status: str = "Requires sponsorship (F-1 student seeking CPT/OPT/H1B)"
 
 def detect_ats(url: str) -> str:
     """Detect the ATS platform from the source URL."""
@@ -235,8 +250,9 @@ async def run_auto_apply(job_url: str, profile_data: dict, resume_path: str):
         raise ValueError("Unsupported ATS platform.")
 
     async with async_playwright() as p:
-        # Launch headed for debugging, headless=True for prod
-        browser = await p.chromium.launch(headless=False) 
+        # Use env var for headless mode, default to true for production-safety
+        headless = os.getenv("PLAYWRIGHT_HEADLESS", "true").lower() == "true"
+        browser = await p.chromium.launch(headless=headless) 
         context = await browser.new_context()
         page = await context.new_page()
 

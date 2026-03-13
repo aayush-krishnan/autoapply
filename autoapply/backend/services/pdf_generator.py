@@ -34,92 +34,29 @@ class PDFGeneratorService:
         }
         for old, new in replacements.items():
             text = text.replace(old, new)
-        return text.encode("latin-1", "replace").decode("latin-1")
+        # Ensure output directory exists
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        
+    def _create_base_pdf(self):
+        pdf = FPDF()
+        # Try to add Unicode-friendly font if available on macOS
+        unicode_font_path = "/Library/Fonts/Arial Unicode.ttf"
+        if os.path.exists(unicode_font_path):
+            try:
+                pdf.add_font("ArialUnicode", "", unicode_font_path)
+                pdf.set_font("ArialUnicode", size=10)
+                return pdf, "ArialUnicode"
+            except Exception as e:
+                logger.warning(f"Failed to load Arial Unicode: {e}")
+        
+        # Fallback to standard Helvetica
+        pdf.set_font("Helvetica", size=10)
+        return pdf, "Helvetica"
 
-    def generate_resume(self, data: dict, output_filename: str) -> str:
-        """
-        Generate a strictly ONE-PAGE PDF resume from data.
-        """
-        # Set tighter margins (12.7mm = 0.5 inch)
-        margin = 12.7
-        pdf = ResumePDF()
-        pdf.set_margins(margin, margin, margin)
+    def generate_resume(self, data: dict, filename: str) -> Path:
+        """Generates a high-fidelity, 1-page tailored resume PDF."""
+        pdf, font_name = self._create_base_pdf()
         pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        
-        # Header - Contact Info (Compact)
-        pdf.set_font('helvetica', 'B', 18) 
-        pdf.cell(0, 10, self._clean_text(data.get('name', 'User')), ln=True, align='C')
-        
-        pdf.set_font('helvetica', '', 9)
-        contact = f"{data.get('email')} | {data.get('phone')} | {self._clean_text(data.get('location'))}"
-        pdf.cell(0, 4, contact, ln=True, align='C')
-        
-        links = f"LinkedIn: {data.get('linkedin')} | Portfolio: {data.get('portfolio')}"
-        pdf.cell(0, 4, links, ln=True, align='C')
-        pdf.ln(2) 
-        
-        # Section Utility
-        def add_section_header(title):
-            pdf.ln(1)
-            pdf.set_font('helvetica', 'B', 11) 
-            pdf.set_text_color(26, 54, 93) 
-            pdf.cell(0, 6, title, ln=True)
-            pdf.line(margin, pdf.get_y(), 210-margin, pdf.get_y())
-            pdf.ln(1)
-
-        # 1. Section: Education (Moved to top as requested)
-        add_section_header("EDUCATION")
-        pdf.set_text_color(0, 0, 0)
-        for edu in data.get('education', []):
-            pdf.set_font('helvetica', 'B', 10)
-            pdf.cell(140, 5, self._clean_text(edu.get('institution', '')), ln=False)
-            pdf.set_font('helvetica', 'I', 9)
-            pdf.cell(0, 5, self._clean_text(edu.get('graduation', '')), ln=True, align='R')
-            
-            pdf.set_font('helvetica', '', 9.5)
-            pdf.cell(0, 4, f"{self._clean_text(edu.get('degree', ''))} | GPA: {edu.get('gpa', '')}", ln=True)
-            if edu.get('relevant_courses'):
-                pdf.set_font('helvetica', 'I', 8.5)
-                courses = ', '.join(edu.get('relevant_courses', []))
-                pdf.multi_cell(0, 4, f"Relevant Coursework: {self._clean_text(courses)}")
-            pdf.ln(0.5)
-
-        # 2. Section: Experience
-        add_section_header("WORK EXPERIENCE")
-        pdf.set_text_color(0, 0, 0)
-        for job in data.get('experience', []):
-            pdf.set_font('helvetica', 'B', 10)
-            pdf.cell(140, 5, self._clean_text(job.get('company', '')), ln=False)
-            pdf.set_font('helvetica', 'I', 9)
-            pdf.cell(0, 5, self._clean_text(job.get('dates', '')), ln=True, align='R')
-            
-            pdf.set_font('helvetica', 'B', 9.5)
-            pdf.cell(0, 4, f"{self._clean_text(job.get('title'))} | {self._clean_text(job.get('location', ''))}", ln=True)
-            
-            pdf.set_font('helvetica', '', 9.5)
-            for bullet in job.get('bullets', []):
-                start_x = pdf.get_x()
-                pdf.cell(4, 4, "-", ln=False)
-                avail_w = 210 - (margin * 2) - 4
-                pdf.multi_cell(avail_w, 4, self._clean_text(bullet))
-                pdf.set_x(start_x)
-            pdf.ln(1)
-            
-        # 3. Section: Skills (Compact Flow)
-        add_section_header("SKILLS & INTERESTS")
-        pdf.set_text_color(0, 0, 0)
-        
-        skills_data = data.get('skills', [])
-        if isinstance(skills_data, dict):
-            for cat, items in skills_data.items():
-                if items:
-                    pdf.set_font('helvetica', 'B', 9)
-                    pdf.cell(30, 4, f"{cat.capitalize()}:", ln=False)
-                    pdf.set_font('helvetica', '', 9)
-                    pdf.multi_cell(0, 4, self._clean_text(", ".join(items)))
-        else:
-            pdf.set_font('helvetica', '', 9)
             pdf.multi_cell(0, 4, self._clean_text(", ".join([str(s) for s in skills_data])))
             
         output_path = OUTPUT_DIR / output_filename

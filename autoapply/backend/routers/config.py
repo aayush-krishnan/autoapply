@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """Router for handling system configuration and settings."""
 
 from fastapi import APIRouter, HTTPException
@@ -5,6 +8,10 @@ from pydantic import BaseModel
 import os
 from pathlib import Path
 from config import settings
+from database import get_db
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from models import SystemConfig
 
 router = APIRouter(prefix="/api/config", tags=["Settings"])
 
@@ -15,8 +22,15 @@ class ConfigUpdate(BaseModel):
     locations: str | None = None
 
 @router.get("/")
-async def get_config():
+async def get_config(db: Session = Depends(get_db)):
     """Return the current system configuration."""
+    # Sync settings with DB first
+    proxy_cfg = db.query(SystemConfig).filter(SystemConfig.key == "PROXY_URL").first()
+    if proxy_cfg: settings.PROXY_URL = proxy_cfg.value
+    
+    interval_cfg = db.query(SystemConfig).filter(SystemConfig.key == "SCRAPE_INTERVAL_HOURS").first()
+    if interval_cfg: settings.SCRAPE_INTERVAL_HOURS = int(interval_cfg.value)
+
     return {
         "proxy_url": settings.PROXY_URL,
         "scrape_interval": settings.SCRAPE_INTERVAL_HOURS,
@@ -25,56 +39,32 @@ async def get_config():
     }
 
 @router.post("/")
-async def update_config(update: ConfigUpdate):
+async def update_config(update: ConfigUpdate, db: Session = Depends(get_db)):
     """
-    Update the .env file with new configuration.
-    In a real production app, this would use a database or a secure config store.
+    Update the system configuration in the database.
     """
-    env_path = Path(__file__).resolve().parent.parent / ".env"
-    
     try:
-        # Read current .env
-        lines = []
-        if env_path.exists():
-            with open(env_path, "r") as f:
-                lines = f.readlines()
-        
-        # Prepare updates
-        updates = {}
         if update.proxy_url is not None:
-            updates["PROXY_URL"] = update.proxy_url
-        if update.scrape_interval is not None:
-            updates["SCRAPE_INTERVAL_HOURS"] = str(update.scrape_interval)
-            
-        # Apply updates
-        new_lines = []
-        applied_keys = set()
-        
-        for line in lines:
-            if "=" in line:
-                key = line.split("=")[0].strip()
-                if key in updates:
-                    new_lines.append(f"{key}={updates[key]}\n")
-                    applied_keys.add(key)
-                    continue
-            new_lines.append(line)
-            
-        # Add new keys
-        for key, val in updates.items():
-            if key not in applied_keys:
-                new_lines.append(f"{key}={val}\n")
-                
-        # Write back
-        with open(env_path, "w") as f:
-            f.writelines(new_lines)
-            
-        # Update runtime settings
-        if update.proxy_url is not None:
+            cfg = db.query(SystemConfig).filter(SystemConfig.key == "PROXY_URL").first()
+            if not cfg:
+                cfg = SystemConfig(key="PROXY_URL", value=update.proxy_url)
+                db.add(cfg)
+            else:
+                cfg.value = update.proxy_url
             settings.PROXY_URL = update.proxy_url
+            
         if update.scrape_interval is not None:
+            cfg = db.query(SystemConfig).filter(SystemConfig.key == "SCRAPE_INTERVAL_HOURS").first()
+            if not cfg:
+                cfg = SystemConfig(key="SCRAPE_INTERVAL_HOURS", value=str(update.scrape_interval))
+                db.add(cfg)
+            else:
+                cfg.value = str(update.scrape_interval)
             settings.SCRAPE_INTERVAL_HOURS = update.scrape_interval
             
-        return {"status": "success", "message": "Settings updated and saved to .env"}
+        db.commit()
+        return {"status": "success", "message": "Settings updated and saved to database"}
         
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update config: {str(e)}")

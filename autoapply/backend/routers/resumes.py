@@ -1,8 +1,14 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """Resumes API router — master profile and tailored resumes."""
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
+from fastapi.responses import FileResponse
+import os
+from pathlib import Path
 
 from database import get_db
 from models import JobListing
@@ -81,16 +87,16 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
     experiences = tailored_data.get("experience", [])
     for idx, exp in enumerate(experiences):
         prefix = "{{COMPANY_" + str(idx+1)
-        replacements[f"{prefix}_NAME}}}}"] = exp.get("company", "")
-        replacements[f"{prefix}_TITLE}}}}"] = exp.get("title", "")
-        replacements[f"{prefix}_DATES}}}}"] = exp.get("dates", "")
+        replacements[f"{prefix}_NAME}}"] = exp.get("company", "")
+        replacements[f"{prefix}_TITLE}}"] = exp.get("title", "")
+        replacements[f"{prefix}_DATES}}"] = exp.get("dates", "")
         
         bullets = exp.get("bullets", [])
         for b_idx in range(4): # Assume max 4 bullets supported by template
             bullet_text = bullets[b_idx] if b_idx < len(bullets) else ""
             if bullet_text:
                 bullet_text = f"• {bullet_text}"
-            replacements[f"{prefix}_BULLET_{b_idx+1}}}}}"] = bullet_text
+            replacements[f"{prefix}_BULLET_{b_idx+1}}}"] = bullet_text
 
 
     # 3. Generate Local PDF (Reliable alternative to Google Drive quota issues)
@@ -113,19 +119,19 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
     
     try:
         local_path = pdf_generator_service.generate_resume(pdf_data, filename)
-        # return full URL so frontend window.open works
-        doc_url = f"http://localhost:8000/api/static/resumes/tailored/{filename}"
+        # return protected download URL
+        doc_url = f"/api/resumes/download/{filename}"
         doc_id = filename 
-        print(f"✅ Local PDF generated: {local_path}")
+        logger.info(f"✅ Local PDF generated: {local_path}")
     except Exception as e:
-        print(f"❌ Local PDF generation failed: {e}")
+        logger.info(f"❌ Local PDF generation failed: {e}")
         doc_id = "error"
         doc_url = "#"
 
     # Optional: Still try to create Google Doc if configured, but don't let it crash the request
     try:
         if settings.GOOGLE_SERVICE_ACCOUNT_FILE and settings.GOOGLE_DRIVE_FOLDER_ID:
-            template_id = "1sTsA0rOhi2M0JrEibVfG4Ig8LEc-MAyY"
+            template_id = settings.GOOGLE_RESUME_TEMPLATE_ID
             new_title = f"{schema.personal.name} - Resume - {job.company_name} ({job.title})"
             g_id, g_url = await google_docs_service.create_tailored_doc(
                 template_id=template_id,
@@ -134,9 +140,9 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
                 folder_id=settings.GOOGLE_DRIVE_FOLDER_ID
             )
             # If Google succeeds, we can prefer it or just log it
-            print(f"✅ Google Doc also created: {g_url}")
+            logger.info(f"✅ Google Doc also created: {g_url}")
     except Exception as g_e:
-        print(f"⚠️ Google Doc creation failed (likely quota): {g_e}")
+        logger.info(f"⚠️ Google Doc creation failed (likely quota): {g_e}")
 
     # 4. Save to Database
     tailored_record = TailoredResume(
@@ -162,3 +168,22 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
         "fidelity_score": fidelity,
         "google_doc_url": doc_url
     }
+
+@router.get("/download/{filename}")
+async def download_resume(filename: str):
+    """
+    Protected endpoint to download a tailored resume.
+    Access controlled by global API key middleware.
+    """
+    # Import locally to avoid circular dependency if any
+    output_dir = Path("data/resumes/tailored")
+    file_path = output_dir / filename
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Resume file not found")
+        
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type="application/pdf"
+    )

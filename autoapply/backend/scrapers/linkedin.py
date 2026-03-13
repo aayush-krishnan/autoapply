@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """LinkedIn job scraper using public search URLs (no login required)."""
 
 import httpx
@@ -9,6 +12,7 @@ from datetime import datetime, timezone, timedelta
 from urllib.parse import quote_plus
 
 from scrapers import BaseScraper, ScrapedJob
+from config import settings
 
 
 class LinkedInScraper(BaseScraper):
@@ -24,9 +28,6 @@ class LinkedInScraper(BaseScraper):
         "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
     ]
 
-    @property
-    def source_name(self) -> str:
-        return "linkedin"
 
     def _get_headers(self) -> dict:
         return {
@@ -75,7 +76,7 @@ class LinkedInScraper(BaseScraper):
                                     seen_urls.add(job.source_url)
                                     all_jobs.append(job)
                         except Exception as e:
-                            print(f"[LinkedIn] Error scraping '{keyword}' in '{location}': {e}")
+                            logger.info(f"[LinkedIn] Error scraping '{keyword}' in '{location}': {e}")
                             break # Skip further pages on error
 
                         # Be polite between pages
@@ -84,7 +85,7 @@ class LinkedInScraper(BaseScraper):
                     # Be polite
                     await asyncio.sleep(2.0)
 
-        print(f"[LinkedIn] Total unique jobs scraped: {len(all_jobs)}")
+        logger.info(f"[LinkedIn] Total unique jobs scraped: {len(all_jobs)}")
         return all_jobs
 
     async def _scrape_search(
@@ -107,10 +108,10 @@ class LinkedInScraper(BaseScraper):
         try:
             response = await client.get(self.BASE_URL, params=params)
             if response.status_code != 200:
-                print(f"[LinkedIn] Got status {response.status_code} for {keyword} in {location}")
+                logger.info(f"[LinkedIn] Got status {response.status_code} for {keyword} in {location}")
                 return []
         except httpx.HTTPError as e:
-            print(f"[LinkedIn] HTTP error: {e}")
+            logger.info(f"[LinkedIn] HTTP error: {e}")
             return []
 
         return self._parse_search_results(response.text, keyword)

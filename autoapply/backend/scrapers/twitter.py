@@ -1,8 +1,12 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """X.com (Twitter) Monitor for early hiring signals and funding rounds."""
 
 from playwright.async_api import async_playwright
 import asyncio
 from scrapers import BaseScraper, ScrapedJob
+from config import settings
 
 class TwitterScraper(BaseScraper):
     @property
@@ -70,12 +74,12 @@ class TwitterScraper(BaseScraper):
                                     experience_level="internship",
                                 ))
                 except Exception as e:
-                    print(f"[Twitter] Error parsing chatter signal: {e}")
+                    logger.info(f"[Twitter] Error parsing chatter signal: {e}")
                 finally:
                     await page.close()
                     await asyncio.sleep(2.5) # Anti-captcha delay
             
             await browser.close()
             
-        print(f"[Twitter] Found {len(all_jobs)} active hiring signals/chatter.")
+        logger.info(f"[Twitter] Found {len(all_jobs)} active hiring signals/chatter.")
         return all_jobs

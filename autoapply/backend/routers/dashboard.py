@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """Dashboard API router — aggregated stats and analytics."""
 
 from datetime import datetime, timezone, timedelta

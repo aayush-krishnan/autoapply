@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 """Jobs API router — discovery, listing, search, and scraping."""
 
 import time
@@ -9,8 +12,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 
 from database import get_db
+from scrapers import ScrapedJob, parse_posted_at
 from config import settings
-from models import JobListing, Company, ScraperRun
+from models import JobListing, Company, ScraperRun, generate_title_hash
 from schemas import (
     JobListingResponse, JobListingDetail, PaginatedJobs,
     ScrapeRequest, ScrapeResponse,
@@ -222,14 +226,18 @@ async def run_scrape_logic(db: Session, sources: list[str]):
                     db.add(company)
                     db.flush()
 
-                # Calculate match score
+                # Calculate real days_ago for scoring
+                posted_dt = parse_posted_at(raw_job.posted_at)
+                days_ago = (datetime.now(timezone.utc) - posted_dt.replace(tzinfo=timezone.utc)).days if posted_dt else 1
+
+                # Calculate match score with real data
                 match_score = score_job(
                     title=raw_job.title,
                     company_name=raw_job.company_name,
                     location=raw_job.location,
                     description=raw_job.description,
                     visa_info=raw_job.visa_info,
-                    posted_days_ago=1,  # Assume recent for now
+                    posted_days_ago=days_ago,
                 )
 
                 # Create job listing
@@ -245,14 +253,15 @@ async def run_scrape_logic(db: Session, sources: list[str]):
                     match_score=match_score,
                     visa_info=raw_job.visa_info,
                     company_name=raw_job.company_name,
-                    posted_at=None,  # TODO: parse raw_job.posted_at
+                    posted_at=posted_dt,
+                    title_hash=generate_title_hash(raw_job.title, raw_job.company_name)
                 )
                 db.add(job)
                 total_new += 1
 
             db.commit()
         except Exception as e:
-            print(f"[Scrape] Error with {source_name}: {e}")
+            logger.info(f"[Scrape] Error with {source_name}: {e}")
             db.rollback()
 
     # Update scraper run record

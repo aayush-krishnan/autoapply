@@ -1,6 +1,10 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import httpx
 import random
 import asyncio
+from config import settings
 from bs4 import BeautifulSoup
 from scrapers import BaseScraper, ScrapedJob
 from urllib.parse import quote_plus
@@ -17,10 +21,6 @@ class IndeedScraper(BaseScraper):
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
     ]
-
-    @property
-    def source_name(self) -> str:
-        return "indeed"
 
     def _get_headers(self) -> dict:
         return {
@@ -55,13 +55,13 @@ class IndeedScraper(BaseScraper):
                                     seen_urls.add(job.source_url)
                                     all_jobs.append(job)
                         except Exception as e:
-                            print(f"[Indeed] Error scraping '{keyword}' in '{location}': {e}")
+                            logger.info(f"[Indeed] Error scraping '{keyword}' in '{location}': {e}")
                             break # Skip further pages on error
 
                         # Be polite — wait between requests
                         await asyncio.sleep(1.5)
 
-        print(f"[Indeed] Total unique jobs scraped: {len(all_jobs)}")
+        logger.info(f"[Indeed] Total unique jobs scraped: {len(all_jobs)}")
         return all_jobs
 
     async def _scrape_search(
@@ -80,10 +80,10 @@ class IndeedScraper(BaseScraper):
         try:
             response = await client.get(self.BASE_URL, params=params)
             if response.status_code != 200:
-                print(f"[Indeed] Got status {response.status_code} for {keyword} in {location}")
+                logger.info(f"[Indeed] Got status {response.status_code} for {keyword} in {location}")
                 return []
         except httpx.HTTPError as e:
-            print(f"[Indeed] HTTP error: {e}")
+            logger.info(f"[Indeed] HTTP error: {e}")
             return []
 
         return self._parse_search_results(response.text, keyword)

@@ -31,7 +31,7 @@ def score_job(
 
     # --- 1. Keyword Match (25%) ---
     keyword_score = 0.0
-    target_terms = [kw.lower() for kw in settings.TARGET_KEYWORDS]
+    target_terms = settings.TARGET_KEYWORDS_LOWER
     matches = sum(1 for term in target_terms if term in full_text)
     if matches > 0:
         keyword_score = min(matches / 2, 1.0)  # 2+ keyword matches = full score
@@ -72,10 +72,10 @@ def score_job(
     # --- 4. Company Fit (10%) ---
     company_score = 0.5  # Default: unknown company
     # Known large tech companies get a boost
-    big_tech = settings.H1B_TIER1 + settings.H1B_TIER2
-    if any(bt.lower() in company_lower for bt in big_tech):
+    if any(bt in company_lower for bt in settings.H1B_TIER1_LOWER) or \
+       any(bt in company_lower for bt in settings.H1B_TIER2_LOWER):
         company_score = 1.0
-    elif any(ns.lower() in company_lower for ns in settings.H1B_NO_SPONSOR):
+    elif any(ns in company_lower for ns in settings.H1B_NO_SPONSOR_LOWER):
         company_score = 0.2
     score += company_score * 10
 
@@ -94,11 +94,11 @@ def score_job(
 
     # --- 6. H1B Sponsor History (15%) ---
     h1b_score = 0.3  # Default: unknown
-    if any(c.lower() in company_lower for c in settings.H1B_TIER1):
+    if any(c in company_lower for c in settings.H1B_TIER1_LOWER):
         h1b_score = 1.0
-    elif any(c.lower() in company_lower for c in settings.H1B_TIER2):
+    elif any(c in company_lower for c in settings.H1B_TIER2_LOWER):
         h1b_score = 0.7
-    elif any(c.lower() in company_lower for c in settings.H1B_NO_SPONSOR):
+    elif any(c in company_lower for c in settings.H1B_NO_SPONSOR_LOWER):
         h1b_score = 0.0
     score += h1b_score * 15
 

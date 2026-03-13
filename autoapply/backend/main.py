@@ -1,5 +1,15 @@
 """AutoApply Backend — FastAPI Application Entry Point."""
 
+import logging
+
+# Configure logging early
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("autoapply")
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,46 +21,51 @@ from database import engine, init_db
 from routers import jobs, dashboard, resumes, apply, config
 
 
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
+import logging
 from database import SessionLocal
 import datetime
 
-def run_automated_scrape():
-    """Background task to trigger a fresh scrape."""
-    print(f"⏰ [{datetime.datetime.now()}] Starting automated hourly scrape...")
+async def run_automated_scrape_async():
+    """Background task to trigger a fresh scrape using the main event loop."""
+    logger.info("Starting automated hourly scrape...")
     db = SessionLocal()
     try:
         from routers.jobs import run_scrape_logic
-        # For simplicity in background, we run for all common sources
         sources = ["indeed", "linkedin", "wellfound", "twitter", "simplyhired", "builtin", "ziprecruiter"]
-        # Use existing event loop or create one for the async scrape
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(run_scrape_logic(db, sources))
-        loop.close()
-        print(f"✅ [{datetime.datetime.now()}] Automated scrape completed.")
+        await run_scrape_logic(db, sources)
+        logger.info("Automated scrape completed.")
     except Exception as e:
-        print(f"❌ [{datetime.datetime.now()}] Scrape failed: {e}")
+        logger.error("Scrape failed: %s", e)
     finally:
         db.close()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 AutoApply Backend starting...")
+    logger.info("🚀 AutoApply Backend starting...")
+    from config import settings
+    import google.generativeai as genai
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    
     init_db()
     
     # Init scheduler
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(run_automated_scrape, 'interval', hours=1, next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=10))
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        run_automated_scrape_async, 
+        'interval', 
+        hours=1, 
+        next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=10)
+    )
     scheduler.start()
-    print("📅 [Scheduler] Hourly background scrape scheduled.")
+    logger.info("[Scheduler] Hourly background scrape scheduled.")
     from config import settings
-    print(f"📂 [Config] Google Drive Folder ID: {settings.GOOGLE_DRIVE_FOLDER_ID or 'NOT CONFIGURED'}")
+    logger.info(f"📂 [Config] Google Drive Folder ID: {settings.GOOGLE_DRIVE_FOLDER_ID or 'NOT CONFIGURED'}")
     
     yield
     scheduler.shutdown()
-    print("👋 AutoApply Backend shutting down")
+    logger.info("👋 AutoApply Backend shutting down")
 
 
 app = FastAPI(
@@ -73,10 +88,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static files for tailored resumes
-resumes_path = os.path.join(os.getcwd(), "data", "resumes")
-os.makedirs(resumes_path, exist_ok=True)
-app.mount("/api/static/resumes", StaticFiles(directory=resumes_path), name="resumes")
+from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
+from config import settings
+
+@app.middleware("http")
+async def api_key_middleware(request: Request, call_next):
+    # Allow local frontend, health checks, and docs
+    path = request.url.path
+    if path in ["/health", "/api/health", "/docs", "/openapi.json"] or path.startswith("/api/static/assets"):
+        return await call_next(request)
+    
+    # Check for API Key in header or query param
+    api_key = request.headers.get("X-API-Key") or request.query_params.get("api_key")
+    
+    if settings.API_KEY and api_key != settings.API_KEY:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Unauthorized. Please provide a valid X-API-Key header."}
+        )
+    
+    return await call_next(request)
+
+# Static files for assets (non-sensitive)
+app.mount("/api/static/assets", StaticFiles(directory="assets"), name="assets")
 
 # Include routers
 app.include_router(jobs.router)

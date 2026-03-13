@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import httpx
 import random
 import asyncio
@@ -61,6 +64,6 @@ class ZipRecruiterScraper(BaseScraper):
                                 description=""
                             ))
                     except Exception as e:
-                        print(f"[ZipRecruiter] Error: {e}")
+                        logger.info(f"[ZipRecruiter] Error: {e}")
                         
         return all_jobs

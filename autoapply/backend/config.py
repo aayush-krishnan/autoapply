@@ -1,29 +1,33 @@
-"""Application configuration loaded from environment variables."""
+"""Application configuration loaded from environment variables using Pydantic Settings."""
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import cached_property
 
-# Load .env from project root (one level up from backend/)
-env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(env_path)
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=str(Path(__file__).resolve().parent.parent / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
-
-class Settings:
     # Google AI
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_API_KEY: str = ""
+    API_KEY: str = "autoapply-secret-key-2026"
 
     # Google Docs / Drive
-    GOOGLE_SERVICE_ACCOUNT_FILE: str = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "google-credentials.json")
-    GOOGLE_DRIVE_FOLDER_ID: str = os.getenv("GOOGLE_DRIVE_FOLDER_ID", "")
+    GOOGLE_SERVICE_ACCOUNT_FILE: str = "google-credentials.json"
+    GOOGLE_DRIVE_FOLDER_ID: str = ""
+    GOOGLE_RESUME_TEMPLATE_ID: str = "1sTsA0rOhi2M0JrEibVfG4Ig8LEc-MAyY"
 
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./autoapply.db")
+    DATABASE_URL: str = "sqlite:///./autoapply.db"
 
     # Scraper
-    SCRAPE_INTERVAL_HOURS: int = int(os.getenv("SCRAPE_INTERVAL_HOURS", "6"))
-    MAX_JOBS_PER_SCRAPE: int = int(os.getenv("MAX_JOBS_PER_SCRAPE", "100"))
-    PROXY_URL: str = os.getenv("PROXY_URL", "") # e.g. "http://user:pass@host:port"
+    SCRAPE_INTERVAL_HOURS: int = 6
+    MAX_JOBS_PER_SCRAPE: int = 100
+    PROXY_URL: str = ""
 
     # Target search config - Keyword Permutation Engine
     ROLE_BASE: list[str] = [
@@ -41,39 +45,34 @@ class Settings:
         "Associate", "University Graduate", "Recent Grad"
     ]
 
-    @property
+    @cached_property
     def TARGET_KEYWORDS(self) -> list[str]:
-        """Generate all permutations of focus + role + seniority."""
+        """Generate all permutations and cache the result."""
         keywords = set()
         for focus in self.FOCUS_AREA:
             for role in self.ROLE_BASE:
                 for seniority in self.SENIORITY:
-                    # Construct string, skipping empty focus areas
                     parts = [focus, role, seniority]
                     kw = " ".join(p for p in parts if p).strip()
                     keywords.add(kw)
         
-        # Also add standalone roles with just seniority
         for role in self.ROLE_BASE:
             for seniority in self.SENIORITY:
                 keywords.add(f"{role} {seniority}")
                 
         return list(keywords)
 
-    TARGET_CITIES: list[str] = [
-        "New York",
-        "San Francisco",
-        "Seattle",
-        "Boston",
-        "Chicago",
-        "Austin",
-        "Los Angeles",
-        "Washington",
-    ]
-    # Relaxed filtering - we now ingest these and let the LLM score them
-    EXCLUDE_TYPES: list[str] = []
+    @cached_property
+    def TARGET_KEYWORDS_LOWER(self) -> list[str]:
+        """Cache lowercased keywords for faster scoring."""
+        return [kw.lower() for kw in self.TARGET_KEYWORDS]
 
-    # H1B sponsor tiers (companies known to sponsor post-internship)
+    TARGET_CITIES: list[str] = [
+        "New York", "San Francisco", "Seattle", "Boston", 
+        "Chicago", "Austin", "Los Angeles", "Washington"
+    ]
+
+    # H1B sponsor tiers
     H1B_TIER1: list[str] = [
         "Google", "Amazon", "Microsoft", "Meta", "Apple",
         "Uber", "Salesforce", "Adobe", "Stripe", "Airbnb", "Netflix",
@@ -82,9 +81,18 @@ class Settings:
         "IBM", "Deloitte", "EY", "JPMorgan", "Goldman Sachs",
         "Visa", "Qualcomm", "Intel", "Oracle", "SAP", "Cisco", "VMware",
     ]
-    H1B_NO_SPONSOR: list[str] = [
-        "CBRE", "Grant Thornton", "NSK",
-    ]
+    H1B_NO_SPONSOR: list[str] = ["CBRE", "Grant Thornton", "NSK"]
 
+    @cached_property
+    def H1B_TIER1_LOWER(self) -> set[str]:
+        return {c.lower() for c in self.H1B_TIER1}
+
+    @cached_property
+    def H1B_TIER2_LOWER(self) -> set[str]:
+        return {c.lower() for c in self.H1B_TIER2}
+
+    @cached_property
+    def H1B_NO_SPONSOR_LOWER(self) -> set[str]:
+        return {c.lower() for c in self.H1B_NO_SPONSOR}
 
 settings = Settings()

@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import httpx
 import random
 import asyncio
@@ -43,7 +46,7 @@ class SimplyHiredScraper(BaseScraper):
                     try:
                         resp = await client.get(search_url)
                         if resp.status_code != 200:
-                            print(f"[SimplyHired] Error {resp.status_code} for {keyword} in {location}")
+                            logger.info(f"[SimplyHired] Error {resp.status_code} for {keyword} in {location}")
                             continue
                             
                         soup = BeautifulSoup(resp.text, "lxml")
@@ -72,6 +75,6 @@ class SimplyHiredScraper(BaseScraper):
                             ))
                             
                     except Exception as e:
-                        print(f"[SimplyHired] Failed to scrape {keyword}: {e}")
+                        logger.info(f"[SimplyHired] Failed to scrape {keyword}: {e}")
                         
         return all_jobs

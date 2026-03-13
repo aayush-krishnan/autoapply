@@ -1,5 +1,6 @@
 """Google Docs integration for creating tailored resumes."""
 
+import logging
 import os
 import io
 from google.oauth2.service_account import Credentials
@@ -12,6 +13,8 @@ from config import settings
 # Need these scopes to duplicate and edit files
 SCOPES = ['https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/drive']
 
+
+logger = logging.getLogger(__name__)
 
 class GoogleDocsService:
     """Service to interact with Google Docs and Drive APIs."""

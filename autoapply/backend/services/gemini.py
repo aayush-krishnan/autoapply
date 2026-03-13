@@ -11,7 +11,6 @@ class GeminiService:
     """Wrapper around Google Gemini Pro for job-related AI tasks."""
 
     def __init__(self):
-        genai.configure(api_key=settings.GEMINI_API_KEY)
         self.model = genai.GenerativeModel("gemini-1.5-flash")
         self.pro_model = genai.GenerativeModel("gemini-2.0-flash")
 
