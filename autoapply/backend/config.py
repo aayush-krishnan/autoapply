@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./autoapply.db"
 
+    # MCP Integration
+    USE_MCP: bool = True
+    MCP_SERVERS: dict[str, list[str]] = {
+        "jobspy": ["npx", "-y", "@modelcontextprotocol/server-jobspy"]
+    }
+
     # Scraper
     SCRAPE_INTERVAL_HOURS: int = 6
     MAX_JOBS_PER_SCRAPE: int = 100

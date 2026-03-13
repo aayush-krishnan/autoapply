@@ -3,6 +3,7 @@
 import google.generativeai as genai
 from config import settings
 import json
+import logging
 
 class AIFormFiller:
     def __init__(self):

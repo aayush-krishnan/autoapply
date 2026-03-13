@@ -1,0 +1,124 @@
+
+> frontend@0.1.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.105:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 657ms
+ GET /resumes 200 in 591ms (compile: 450ms, render: 142ms)
+ GET / 200 in 126ms (compile: 100ms, render: 26ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 210ms (compile: 41ms, render: 169ms)
+✓ Compiled in 925ms
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+✓ Compiled in 414ms
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 324ms (compile: 114ms, render: 211ms)
+✓ Compiled in 134ms
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 269ms (compile: 105ms, render: 164ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 261ms (compile: 124ms, render: 136ms)
+ GET /jobs 404 in 762ms (compile: 565ms, render: 197ms)
+ GET /jobs 404 in 169ms (compile: 22ms, render: 146ms)
+ GET /applications 200 in 365ms (compile: 282ms, render: 83ms)
+ GET /jobs 404 in 256ms (compile: 147ms, render: 109ms)
+ GET /jobs 404 in 85ms (compile: 15ms, render: 69ms)
+ GET /jobs 404 in 181ms (compile: 46ms, render: 135ms)
+ GET /jobs 404 in 115ms (compile: 22ms, render: 92ms)
+ GET / 200 in 101ms (compile: 27ms, render: 75ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 165ms (compile: 24ms, render: 142ms)
+ GET /resumes 200 in 337ms (compile: 216ms, render: 121ms)
+ GET /resumes 200 in 139ms (compile: 48ms, render: 91ms)
+ GET /jobs 404 in 106ms (compile: 52ms, render: 54ms)
+ GET /jobs 404 in 101ms (compile: 6ms, render: 95ms)
+ GET /jobs 404 in 84ms (compile: 14ms, render: 70ms)
+ GET /jobs 404 in 54ms (compile: 11ms, render: 43ms)
+ GET /settings 200 in 221ms (compile: 188ms, render: 33ms)
+ GET /applications 200 in 124ms (compile: 57ms, render: 67ms)
+ GET /applications 200 in 94ms (compile: 50ms, render: 44ms)
+ GET / 200 in 68ms (compile: 15ms, render: 53ms)
+ GET /jobs 404 in 1138ms (compile: 747ms, render: 390ms)
+ GET /jobs 404 in 444ms (compile: 33ms, render: 411ms)
+ GET / 200 in 441ms (compile: 156ms, render: 285ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 463ms (compile: 51ms, render: 413ms)
+ GET /outreach 200 in 1446ms (compile: 1287ms, render: 159ms)
+ GET /jobs 404 in 372ms (compile: 48ms, render: 324ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 587ms (compile: 139ms, render: 448ms)
+ GET /applications 200 in 668ms (compile: 179ms, render: 489ms)
+ GET /applications 200 in 503ms (compile: 81ms, render: 422ms)
+ GET / 200 in 1299ms (compile: 321ms, render: 978ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 168ms (compile: 67ms, render: 101ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 404ms (compile: 158ms, render: 246ms)

@@ -19,6 +19,8 @@ import os
 
 from database import engine, init_db
 from routers import jobs, dashboard, resumes, apply, config
+from services.google_docs import google_docs_service
+from services.pdf_generator import pdf_generator_service
 
 
 @asynccontextmanager
@@ -51,10 +53,12 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
+        "http://127.0.0.1:3001",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 from fastapi import Request, HTTPException
@@ -63,9 +67,10 @@ from config import settings
 
 @app.middleware("http")
 async def api_key_middleware(request: Request, call_next):
-    # Allow local frontend, health checks, and docs
+    logger.info(f"Incoming request: {request.method} {request.url.path}")
+    # Allow local frontend, health checks, docs, and OPTIONS preflight
     path = request.url.path
-    if path in ["/health", "/api/health", "/docs", "/openapi.json"] or path.startswith("/api/static/assets"):
+    if request.method == "OPTIONS" or path in ["/health", "/api/health", "/docs", "/openapi.json"] or path.startswith("/api/static/assets"):
         return await call_next(request)
     
     # Check for API Key in header or query param

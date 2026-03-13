@@ -26,6 +26,7 @@ from scrapers.twitter import TwitterScraper
 from scrapers.simplyhired import SimplyHiredScraper
 from scrapers.builtin import BuiltInScraper
 from scrapers.ziprecruiter import ZipRecruiterScraper
+from scrapers.mcp_scraper import MCPJobScraper
 from services.scorer import score_job
 from services.dedup import find_existing_job
 from config import settings
@@ -103,6 +104,14 @@ async def list_jobs(
     )
 
 
+@router.get("/stats")
+async def get_job_stats(db: Session = Depends(get_db)):
+    """Summary stats specifically for jobs ( legacy support )."""
+    total = db.query(JobListing).count()
+    applied = db.query(JobListing).filter(JobListing.status == "applied").count()
+    return {"total": total, "applied": applied}
+
+
 @router.get("/{job_id}", response_model=JobListingDetail)
 async def get_job(job_id: str, db: Session = Depends(get_db)):
     """Get detailed information about a specific job."""
@@ -170,8 +179,8 @@ async def run_scrape_logic(db: Session, sources: list[str]):
     db.commit()
 
     scrapers = {
-        "indeed": IndeedScraper(),
-        "linkedin": LinkedInScraper(),
+        "indeed": MCPJobScraper("indeed") if settings.USE_MCP else IndeedScraper(),
+        "linkedin": MCPJobScraper("linkedin") if settings.USE_MCP else LinkedInScraper(),
         "wellfound": WellfoundScraper(),
         "twitter": TwitterScraper(),
         "simplyhired": SimplyHiredScraper(),

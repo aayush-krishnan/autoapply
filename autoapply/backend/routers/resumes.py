@@ -147,16 +147,29 @@ async def tailor_resume(job_id: str, db: Session = Depends(get_db)):
     except Exception as g_e:
         logger.info(f"⚠️ Google Doc creation failed (likely quota): {g_e}")
 
-    # 4. Save to Database
-    tailored_record = TailoredResume(
-        job_id=job_id,
-        tailored_content=tailored_data,
-        fidelity_score=fidelity,
-        google_doc_id=doc_id,
-        google_doc_url=doc_url,
-        resume_source=source
-    )
-    db.add(tailored_record)
+    # 4. Save to Database (Update if exists, else create)
+    tailored_record = db.query(TailoredResume).filter(TailoredResume.job_id == job_id).first()
+    
+    if tailored_record:
+        tailored_record.tailored_content = tailored_data
+        tailored_record.fidelity_score = fidelity
+        tailored_record.google_doc_id = doc_id
+        tailored_record.google_doc_url = doc_url
+        tailored_record.resume_source = source
+        tailored_record.updated_at = datetime.now(timezone.utc)
+        logger.info(f"🔄 Updated existing tailored resume for job {job_id}")
+    else:
+        tailored_record = TailoredResume(
+            job_id=job_id,
+            tailored_content=tailored_data,
+            fidelity_score=fidelity,
+            google_doc_id=doc_id,
+            google_doc_url=doc_url,
+            resume_source=source
+        )
+        db.add(tailored_record)
+        logger.info(f"🆕 Created new tailored resume for job {job_id}")
+        
     db.commit()
 
 
